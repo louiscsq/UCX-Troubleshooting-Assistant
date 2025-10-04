@@ -1,0 +1,52 @@
+# Databricks Apps ignore file - exclude large files from deployment
+
+# Virtual environment (will be recreated on deployment)
+.venv/
+venv/
+env/
+
+# Large MLflow files
+**/*.js.map
+**/*.chunk.js
+**/static/js/
+**/static/css/
+**/build/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Git directories (but keep the UCX codebase content)
+**/.git/
+.gitignore
+
+# UCX codebase - exclude problematic test files but keep core functionality
+ucx-codebase/tests/unit/source_code/samples/functional/
+ucx-codebase/.git/
+
+# Large data files
+*.parquet
+*.csv
+*.json
+*.log
+
+# Documentation (we'll keep UCX docs)
+README.md
+docs/
+

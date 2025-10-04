@@ -1,0 +1,24 @@
+bundle:
+  name: ucx-doctor
+
+workspace:
+  host: https://adb-3071451485461981.1.azuredatabricks.net
+
+resources:
+  apps:
+    ucx_doctor_app:
+      name: ${bundle.target}-${bundle.name}
+      description: "UCX Troubleshooting Assistant - Unity Catalog Migration Helper"
+      source_code_path: ./
+
+targets:
+  dev:
+    default: true
+    workspace:
+      host: https://adb-3071451485461981.1.azuredatabricks.net
+      root_path: /Workspace/Users/louis.chen@databricks.com/databricks_apps/ucx-doctor_dev
+
+  prod:
+    workspace:
+      host: https://adb-3071451485461981.1.azuredatabricks.net
+      root_path: /Workspace/Users/louis.chen@databricks.com/databricks_apps/ucx-doctor_prod
