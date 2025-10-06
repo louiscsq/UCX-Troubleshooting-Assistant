@@ -22,6 +22,16 @@ A Databricks application that provides intelligent troubleshooting assistance fo
 - **Chat Interface**: Interactive troubleshooting conversations
 - **Multi-mode Support**: Both instant responses and extended reasoning
 
+### **📊 Comprehensive Audit Logging with Delta Lake**
+- **Delta Table Storage**: Scalable ACID-compliant audit trails in Unity Catalog
+- **User Tracking**: Identifies users via Databricks authentication headers
+- **Interaction Logging**: Records all questions, responses, and metadata
+- **Privacy Compliance**: Automatic redaction of sensitive information
+- **SQL Analytics**: Custom SQL queries on audit data for advanced analysis
+- **Audit Dashboard**: Real-time analytics with interactive charts and reports
+- **Export Capabilities**: JSON and CSV export with date range filtering
+- **Time Travel**: Query historical versions of audit data using Delta Lake features
+
 ## 🏗️ Architecture
 
 ```
@@ -29,15 +39,21 @@ UCX Troubleshooting App
 ├── Streamlit Frontend (app.py)
 ├── UCX Knowledge Engine (ucx_utils.py)
 ├── Model Serving Interface (model_serving_utils.py)
+├── Delta Lake Audit System (audit_utils.py)
+├── Interactive Dashboard (audit_dashboard.py)
 ├── Cached UCX Codebase (ucx-codebase/)
-└── Claude Sonnet 4 Foundation Model
+└── Claude Sonnet 4 + Unity Catalog + Delta Lake
 ```
 
 ### **Core Components:**
 
-- **`app.py`**: Main Streamlit application with chat interface
+- **`app.py`**: Main Streamlit application with chat interface and audit integration
 - **`ucx_utils.py`**: UCX troubleshooting utilities and codebase analysis
 - **`model_serving_utils.py`**: Interface to Databricks model serving endpoints
+- **`audit_utils.py`**: Comprehensive audit logging and privacy management with Delta Lake
+- **`audit_dashboard.py`**: Interactive dashboard for audit analytics and reporting
+- **`config_helper.py`**: Configuration utilities and validation for audit system
+- **`admin_utils.py`**: Admin URL generation and secure dashboard access utilities
 - **`ucx-codebase/`**: Cached copy of the official UCX repository from [databrickslabs/ucx](https://github.com/databrickslabs/ucx)
 
 ## 📦 Installation & Deployment
@@ -106,17 +122,21 @@ env:
 
 ```
 ucx-troubleshooting-app/
-├── README.md                    # This file
-├── requirements.txt             # Python dependencies
-├── databricks.yml              # Databricks bundle configuration
-├── app.yaml                    # App runtime configuration
-├── .databricksignore           # Files to exclude from deployment
-├── .gitignore                  # Git ignore patterns
-├── .dockerignore               # Docker ignore patterns
-│
 ├── app.py                      # Main Streamlit application
 ├── ucx_utils.py               # UCX troubleshooting utilities
 ├── model_serving_utils.py     # Model serving interface
+├── audit_utils.py             # Delta Lake audit system
+├── audit_dashboard.py         # Interactive audit dashboard
+├── config_helper.py           # Configuration utilities  
+├── admin_utils.py             # Admin URL generation and secure access
+│
+├── requirements.txt           # Python dependencies
+├── databricks.yml             # Databricks bundle configuration (with audit variables)
+├── app.yaml                   # App runtime configuration (with audit env vars)
+├── .databricksignore          # Files to exclude from deployment
+├── .gitignore                 # Git ignore patterns
+├── .dockerignore              # Docker ignore patterns
+├── AUDIT_CONFIG_EXAMPLES.md   # Configuration examples and best practices
 │
 └── ucx-codebase/              # Cached UCX repository
     ├── src/                   # UCX source code
@@ -125,9 +145,297 @@ ucx-troubleshooting-app/
     └── README.md              # UCX official README
 ```
 
-## 🔧 Development
+## 📊 Audit & Compliance Features
 
-### **Local Development**
+### **Comprehensive Interaction Logging**
+
+The UCX troubleshooting app includes enterprise-grade audit logging that tracks:
+
+- **User Identity**: Automatically captures user information from Databricks authentication
+- **Session Tracking**: Unique session IDs for conversation continuity
+- **Interaction Details**: Questions, responses, response times, and error classifications
+- **Privacy Protection**: Automatic redaction of sensitive information (tokens, keys, passwords)
+- **Compliance Ready**: Structured logging for audit trails and compliance reporting
+
+### **🔧 Configurable Audit Storage**
+
+The audit system supports **fully configurable** Delta table locations:
+
+#### **Environment Variables Configuration**
+```bash
+# Configure audit table location
+export AUDIT_CATALOG="your_catalog"        # Default: "main"
+export AUDIT_SCHEMA="your_schema"          # Default: "ucx_audit" 
+export AUDIT_TABLE="your_table_name"       # Default: "chat_interactions"
+```
+
+#### **Databricks Bundle Configuration**
+In `databricks.yml`, customize per environment:
+```yaml
+variables:
+  audit_catalog:
+    description: "Unity Catalog name for audit tables"
+    default: "main"
+  audit_schema:
+    description: "Schema name for audit tables"
+    default: "ucx_audit"
+
+targets:
+  dev:
+    variables:
+      audit_catalog: "main"
+      audit_schema: "ucx_audit_dev"
+      
+  prod:
+    variables:
+      audit_catalog: "shared"
+      audit_schema: "ucx_audit_prod"
+```
+
+#### **Environment-Specific Examples**
+
+**Development Environment:**
+- Table: `main.ucx_audit_dev.chat_interactions`
+- Isolated from production data
+- Can be freely reset/modified
+
+**Production Environment:**
+- Table: `shared.ucx_audit_prod.chat_interactions`
+- Centralized location for enterprise reporting
+- Strict access controls and retention policies
+
+**Multi-Tenant Setup:**
+- Table: `tenant_a.ucx_audit.chat_interactions`
+- Separate audit trails per tenant/organization
+- Independent data governance
+
+#### **Configuration Validation**
+
+The app automatically validates configuration and displays helpful information:
+
+```python
+# In your app, configuration is auto-validated
+from config_helper import AuditConfig
+
+config = AuditConfig.get_config()
+validation = AuditConfig.validate_config()
+
+# View in dashboard: Shows current table location and any issues
+```
+
+### **🚀 Quick Deployment Examples**
+
+#### **Standard Deployment (Development)**
+```bash
+# Use default settings (main.ucx_audit_dev.chat_interactions)
+databricks bundle deploy --target dev
+```
+
+#### **Production Deployment with Custom Catalog**
+```bash
+# Edit databricks.yml first to set production values
+databricks bundle deploy --target prod
+
+# Or override with environment variables
+export AUDIT_CATALOG="enterprise_catalog"
+export AUDIT_SCHEMA="compliance_audit"
+databricks bundle deploy --target prod
+```
+
+#### **Multi-Environment Setup**
+```bash
+# Development
+AUDIT_SCHEMA="ucx_dev" databricks bundle deploy --target dev
+
+# Staging  
+AUDIT_SCHEMA="ucx_staging" databricks bundle deploy --target staging
+
+# Production
+AUDIT_CATALOG="shared" AUDIT_SCHEMA="ucx_prod" databricks bundle deploy --target prod
+```
+
+#### **Organization-Specific Deployment**
+```bash
+# For specific business unit or team
+export AUDIT_CATALOG="sales_analytics"
+export AUDIT_SCHEMA="ucx_troubleshooting"
+databricks bundle deploy --target prod
+```
+
+The audit system now uses **Delta Lake tables** for enterprise-grade data management:
+
+#### **🏛️ Delta Table Architecture**
+- **Location**: `main.ucx_audit.chat_interactions` (configurable)
+- **Schema**: Structured schema with proper data types and constraints
+- **ACID Compliance**: Guaranteed data consistency and reliability
+- **Versioning**: Complete audit trail with time travel capabilities
+- **Auto-Partitioning**: Optimized for time-based queries
+
+#### **📊 Advanced Analytics**
+- **SQL Interface**: Direct SQL querying in the audit dashboard
+- **Predefined Queries**: User activity, daily trends, error analysis, performance metrics
+- **Custom Analytics**: Write your own SQL queries for specific insights
+- **Interactive Charts**: Automatic visualization of query results
+- **Export Integration**: CSV downloads directly from SQL query results
+
+#### **🔄 Dual-Mode Operation**
+- **Primary**: Delta Lake tables for production deployments
+- **Fallback**: JSON files when Delta/Spark unavailable (local development)
+- **Seamless Switching**: Automatic detection and graceful degradation
+- **Migration Path**: Easy upgrade from JSON to Delta Lake storage
+
+### **Audit Data Schema**
+
+The Delta table uses this optimized schema:
+```sql
+CREATE TABLE main.ucx_audit.chat_interactions (
+  timestamp TIMESTAMP NOT NULL,
+  session_id STRING NOT NULL,
+  user_name STRING,
+  user_email STRING,
+  user_id STRING,
+  user_question STRING NOT NULL,
+  assistant_response STRING NOT NULL,
+  ucx_context_used BOOLEAN NOT NULL,
+  error_type_detected STRING,
+  response_time_ms INTEGER NOT NULL,
+  endpoint_used STRING NOT NULL,
+  interaction_type STRING NOT NULL
+) USING DELTA
+TBLPROPERTIES (
+  'description' = 'UCX Troubleshooting Assistant Audit Log',
+  'created_by' = 'UCX-Troubleshooting-Assistant'
+)
+```
+
+### **SQL Query Examples**
+
+Access powerful analytics through the dashboard's SQL interface:
+
+```sql
+-- Top 10 most active users
+SELECT user_email, COUNT(*) as interactions, 
+       AVG(response_time_ms) as avg_response_time
+FROM {table_name}
+WHERE user_email IS NOT NULL
+GROUP BY user_email
+ORDER BY interactions DESC
+LIMIT 10
+```
+
+```sql
+-- Daily usage trends (last 30 days)
+SELECT DATE(timestamp) as date, 
+       COUNT(*) as interactions,
+       COUNT(DISTINCT user_email) as unique_users
+FROM {table_name}
+WHERE timestamp >= CURRENT_DATE() - INTERVAL 30 DAYS
+GROUP BY DATE(timestamp)
+ORDER BY date DESC
+```
+
+```sql
+-- Error pattern analysis
+SELECT error_type_detected, COUNT(*) as frequency,
+       AVG(response_time_ms) as avg_response_time
+FROM {table_name}
+WHERE error_type_detected IS NOT NULL
+GROUP BY error_type_detected
+ORDER BY frequency DESC
+```
+
+### **Audit Dashboard Features**
+
+The audit dashboard is **hidden from the main interface** for security and is accessible only via a special URL.
+
+#### **🔒 Secure Admin Access**
+
+**Admin URL Format:**
+```
+https://your-app-url.databricksapps.com?admin=dashboard
+```
+
+**Example Admin URLs:**
+```bash
+# Development Environment
+https://dev-ucx-doctor-{workspace-id}.1.azure.databricksapps.com?admin=dashboard
+
+# Production Environment  
+https://prod-ucx-doctor-{workspace-id}.1.azure.databricksapps.com?admin=dashboard
+```
+
+#### **🛡️ Security Features**
+- **Hidden Access**: Dashboard not visible in main app interface
+- **URL-Based Authentication**: Requires special query parameter 
+- **Databricks Authentication**: Uses existing workspace authentication
+- **Access Logging**: All admin dashboard access is logged for audit trails
+- **User Identification**: Admins identified via Databricks headers
+
+#### **📊 Dashboard Capabilities**
+
+Access the dashboard via the admin URL to get:
+
+- **📈 Overview Metrics**: Total interactions, unique users, file sizes, last activity
+- **⏰ Timeline Analysis**: Daily and hourly interaction patterns with charts
+- **👥 User Patterns**: Interaction types, response time analysis, usage trends
+- **🚨 Error Analysis**: Common error patterns and frequency tracking
+- **💬 Recent Interactions**: Filterable list of recent conversations
+- **📤 Export Capabilities**: JSON and CSV export with date range filtering
+
+## 🔐 Admin Dashboard Access
+
+### **Secure URL-Based Access**
+
+The audit dashboard is **hidden from the main app interface** and accessible only via a special admin URL for enhanced security.
+
+#### **🎯 How to Access**
+
+**Step 1**: Get your app's base URL after deployment
+```bash
+databricks apps get dev-ucx-doctor
+# Output will show: "url": "https://dev-ucx-doctor-{workspace-id}.1.azure.databricksapps.com"
+```
+
+**Step 2**: Add the admin query parameter
+```
+https://your-app-url?admin=dashboard
+```
+
+**Step 3**: Access the admin dashboard
+- Visit the admin URL in your browser
+- Dashboard will load instead of the normal chat interface
+- All standard Databricks workspace authentication applies
+
+#### **🔒 Security Benefits**
+- **No Visible Access**: Regular users cannot see or access the dashboard
+- **URL-Based Gate**: Only administrators with the special URL can access
+- **Audit Trail**: All admin access attempts are logged with user identification
+- **Databricks Auth**: Uses workspace authentication (no additional login required)
+
+#### **💡 Usage Tips**
+- **Bookmark** the admin URL for easy access
+- **Share securely** only with authorized team members
+- **Monitor access** via the audit logs in the dashboard itself
+
+### **Admin Dashboard Features**
+
+Once accessed via the admin URL, you get access to:
+
+- **Automatic Redaction**: Sensitive tokens, keys, and passwords are automatically redacted
+- **Anonymization Options**: User data can be hashed for additional privacy
+- **Local Storage**: Audit logs stored locally in `audit_logs/` directory
+- **Secure Headers**: Uses Databricks authentication headers for user identification
+- **No External Dependencies**: All audit data stays within your Databricks environment
+
+### **Compliance Benefits**
+
+- **Audit Trail**: Complete record of all troubleshooting interactions
+- **User Accountability**: Track who accessed the system and when
+- **Usage Analytics**: Understand common issues and system usage patterns  
+- **Performance Monitoring**: Response time tracking and optimization insights
+- **Error Trending**: Identify recurring issues for proactive resolution
+
+## 🔧 Development
 
 1. **Set up Python environment**:
    ```bash

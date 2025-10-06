@@ -40,11 +40,12 @@ Thumbs.db
 ucx-codebase/tests/unit/source_code/samples/functional/
 ucx-codebase/.git/
 
-# Large data files
+# Large data files (but keep audit logs - they're small and important)
 *.parquet
 *.csv
 *.json
 *.log
+!audit_logs/*.jsonl
 
 # Documentation (we'll keep UCX docs)
 README.md

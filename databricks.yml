@@ -1,12 +1,23 @@
 bundle:
-  name: ucx-doctor
+  name: ucx-assistant
 
 workspace:
-  host: https://adb-3071451485461981.1.azuredatabricks.net
+  profile: e2-demo-field-eng
+
+variables:
+  audit_catalog:
+    description: "Unity Catalog name for audit tables"
+    default: "louis"
+  audit_schema:
+    description: "Schema name for audit tables" 
+    default: "ucx_assistant"
+  audit_table:
+    description: "Table name for chat interactions"
+    default: "chat_interactions"
 
 resources:
   apps:
-    ucx_doctor_app:
+    ucx_assistant_app:
       name: ${bundle.target}-${bundle.name}
       description: "UCX Troubleshooting Assistant - Unity Catalog Migration Helper"
       source_code_path: ./
@@ -15,10 +26,16 @@ targets:
   dev:
     default: true
     workspace:
-      host: https://adb-3071451485461981.1.azuredatabricks.net
-      root_path: /Workspace/Users/louis.chen@databricks.com/databricks_apps/ucx-doctor_dev
+      root_path: /Workspace/Users/${workspace.current_user.userName}/databricks_apps/ucx-assistant_dev
+    variables:
+      audit_catalog: "louis"
+      audit_schema: "ucx_assistant_dev" 
+      audit_table: "chat_interactions"
 
   prod:
     workspace:
-      host: https://adb-3071451485461981.1.azuredatabricks.net
-      root_path: /Workspace/Users/louis.chen@databricks.com/databricks_apps/ucx-doctor_prod
+      root_path: /Workspace/Users/${workspace.current_user.userName}/databricks_apps/ucx-assistant_prod
+    variables:
+      audit_catalog: "louis"
+      audit_schema: "ucx_assistant_prod"
+      audit_table: "chat_interactions"
