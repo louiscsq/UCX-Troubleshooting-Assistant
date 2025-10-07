@@ -577,7 +577,84 @@ else:
     # Display chat messages from history on app rerun
     for message in st.session_state.messages:
         with st.chat_message(message["role"]):
-            st.markdown(message["content"])
+            if message["role"] == "assistant":
+                # Use simplified format for assistant responses in history
+                content = message["content"]
+                
+                # Show content with small download option
+                col1, col2 = st.columns([9, 1])
+                
+                with col1:
+                    # Show just summary in history, with expandable details
+                    if len(content) > 300:
+                        # Show first paragraph as summary
+                        first_para = content.split('\n\n')[0] if content else ""
+                        st.markdown(f'<div style="background:#f8f9fa;padding:8px;border-radius:4px;font-size:14px;line-height:1.3;margin:4px 0;">{first_para}</div>', unsafe_allow_html=True)
+                        
+                        with st.expander("View full details", expanded=False):
+                            # Normalize headers in chat history 
+                            normalized_content = content
+                            normalized_content = normalized_content.replace('# ', '**')
+                            normalized_content = normalized_content.replace('## ', '**')
+                            normalized_content = normalized_content.replace('### ', '**')
+                            normalized_content = normalized_content.replace('#### ', '**')
+                            st.markdown(f'<div style="font-size:13px;line-height:1.5">{normalized_content}</div>', unsafe_allow_html=True)
+                    else:
+                        # For shorter responses, show normalized content directly
+                        normalized_content = content
+                        normalized_content = normalized_content.replace('# ', '**')
+                        normalized_content = normalized_content.replace('## ', '**')
+                        normalized_content = normalized_content.replace('### ', '**')
+                        normalized_content = normalized_content.replace('#### ', '**')
+                        st.markdown(f'<div style="font-size:14px;line-height:1.4">{normalized_content}</div>', unsafe_allow_html=True)
+                
+                with col2:
+                    # Small download button for history items
+                    history_key = f"history_download_{abs(hash(content))}"
+                    
+                    # Generate PDF for this historical response
+                    if f"pdf_data_{history_key}" not in st.session_state:
+                        try:
+                            import io
+                            from reportlab.lib.pagesizes import letter
+                            from reportlab.lib.styles import getSampleStyleSheet
+                            from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
+                            
+                            pdf_buffer = io.BytesIO()
+                            doc = SimpleDocTemplate(pdf_buffer, pagesize=letter)
+                            styles = getSampleStyleSheet()
+                            story = []
+                            
+                            story.append(Paragraph("UCX Troubleshooting Assistant Response", styles['Title']))
+                            story.append(Spacer(1, 12))
+                            story.append(Paragraph(f"Date: {time.strftime('%Y-%m-%d %H:%M:%S')}", styles['Normal']))
+                            
+                            # Clean and add content
+                            clean_content = content.replace('**', '').replace('#', '').replace('*', '')
+                            paragraphs = clean_content.split('\n\n')
+                            for para in paragraphs:
+                                if para.strip():
+                                    story.append(Paragraph(para.strip(), styles['Normal']))
+                            
+                            doc.build(story)
+                            st.session_state[f"pdf_data_{history_key}"] = pdf_buffer.getvalue()
+                            pdf_buffer.close()
+                        except:
+                            st.session_state[f"pdf_data_{history_key}"] = None
+                    
+                    # Show download button if PDF is available
+                    if st.session_state.get(f"pdf_data_{history_key}"):
+                        st.download_button(
+                            label="📄",
+                            data=st.session_state[f"pdf_data_{history_key}"],
+                            file_name=f"UCX_Response_History_{time.strftime('%Y%m%d_%H%M%S')}.pdf",
+                            mime="application/pdf",
+                            help="Download this response as PDF",
+                            key=history_key,
+                            type="secondary"
+                        )
+            else:
+                st.markdown(message["content"])
 
     # Accept user input
     if prompt := st.chat_input("Describe your UCX issue or ask any Unity Catalog migration question..."):
@@ -615,12 +692,55 @@ else:
             # Combine context with conversation history
             messages_with_context = [context_message] + st.session_state.messages
             
-            # Query the Databricks serving endpoint
-            assistant_response = query_endpoint(
-                endpoint_name=SERVING_ENDPOINT,
-                messages=messages_with_context,
-                max_tokens=600,
-            )["content"]
+            # Show prominent loading message while processing
+            loading_placeholder = st.empty()
+            with loading_placeholder.container():
+                st.markdown("""
+                <div style="
+                    background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+                    padding: 20px;
+                    border-radius: 10px;
+                    text-align: center;
+                    margin: 20px 0;
+                    color: white;
+                ">
+                    <h2 style="margin: 0; color: white;">🤖 Processing Your Question...</h2>
+                    <p style="margin: 10px 0; font-size: 16px;">UCX Assistant is analyzing your query and searching the knowledge base</p>
+                    <div style="
+                        width: 100%;
+                        height: 6px;
+                        background: rgba(255,255,255,0.3);
+                        border-radius: 3px;
+                        margin-top: 15px;
+                        overflow: hidden;
+                    ">
+                        <div style="
+                            width: 30%;
+                            height: 100%;
+                            background: white;
+                            border-radius: 3px;
+                            animation: loading 2s infinite;
+                        "></div>
+                    </div>
+                </div>
+                <style>
+                @keyframes loading {
+                    0% { transform: translateX(-100%); }
+                    100% { transform: translateX(400%); }
+                }
+                </style>
+                """, unsafe_allow_html=True)
+            
+            try:
+                # Query the Databricks serving endpoint
+                assistant_response = query_endpoint(
+                    endpoint_name=SERVING_ENDPOINT,
+                    messages=messages_with_context,
+                    max_tokens=600,
+                )["content"]
+            finally:
+                # Clear the loading message once processing is complete
+                loading_placeholder.empty()
             
             # Calculate response time
             response_time_ms = int((time.time() - start_time) * 1000)
@@ -642,7 +762,271 @@ else:
                 error_type_detected=error_type_detected
             )
             
-            st.markdown(assistant_response)
+            # Generate Executive Summary with key bullet points
+            def create_executive_summary(response):
+                """Create a concise executive summary with key bullet points"""
+                # Extract key points using pattern matching
+                import re
+                
+                # Look for main points, issues, solutions, and steps
+                key_points = []
+                
+                # Find numbered items, bullet points, or step-by-step items
+                patterns = [
+                    r'(?:^|\n)(?:\d+\.|Step \d+|[-*•])\s*(.+?)(?=\n(?:\d+\.|Step \d+|[-*•])|$)',
+                    r'(?:Problem|Issue|Error|Solution|Fix|Reason|Cause):\s*(.+?)(?=\n|$)',
+                    r'(?:^|\n)(.+?(?:error|fail|issue|problem|solution|fix|install|configure|enable).+?)(?=\n|$)'
+                ]
+                
+                for pattern in patterns:
+                    matches = re.findall(pattern, response, re.MULTILINE | re.IGNORECASE | re.DOTALL)
+                    for match in matches:
+                        clean_point = match.strip().replace('\n', ' ')
+                        if len(clean_point) > 20 and len(clean_point) < 150:  # Reasonable length
+                            key_points.append(clean_point)
+                
+                # Remove duplicates and limit to top 4 points
+                unique_points = list(dict.fromkeys(key_points))[:4]
+                
+                # If no structured points found, extract first few sentences
+                if not unique_points:
+                    sentences = response.split('. ')
+                    unique_points = [s.strip() + '.' for s in sentences[:3] if len(s.strip()) > 20]
+                
+                return unique_points
+            
+            # Create executive summary
+            key_points = create_executive_summary(assistant_response)
+            
+            # Executive Summary with bullet points
+            st.markdown("**📋 Executive Summary**")
+            if key_points:
+                summary_html = '<div style="background:#f8f9fa;padding:12px;border-radius:6px;border-left:4px solid #0066cc;margin:8px 0 16px 0;font-size:14px;line-height:1.4;">'
+                for point in key_points:
+                    summary_html += f'• {point}<br>'
+                summary_html += '</div>'
+                st.markdown(summary_html, unsafe_allow_html=True)
+            else:
+                # Fallback to first paragraph
+                first_para = assistant_response.split('\n\n')[0] if assistant_response else ""
+                st.markdown(f'<div style="background:#f8f9fa;padding:12px;border-radius:6px;border-left:4px solid #0066cc;margin:8px 0 16px 0;font-size:14px;line-height:1.4;">{first_para}</div>', unsafe_allow_html=True)
+            
+            # Detailed Information - always expanded but with consistent formatting
+            st.markdown("**📖 Detailed Information**")
+            # Normalize headers and format consistently
+            detailed_content = assistant_response
+            detailed_content = detailed_content.replace('# ', '**')
+            detailed_content = detailed_content.replace('## ', '**') 
+            detailed_content = detailed_content.replace('### ', '**')
+            detailed_content = detailed_content.replace('#### ', '**')
+            
+            st.markdown(f'<div style="font-size:13px;line-height:1.5;margin:8px 0;">{detailed_content}</div>', unsafe_allow_html=True)
+            
+            # PDF Download feature
+            def create_pdf_content(question, response, key_points):
+                """Create PDF content for download"""
+                try:
+                    from reportlab.lib.pagesizes import letter
+                    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+                    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
+                    from reportlab.lib.units import inch
+                    from datetime import datetime
+                    import io
+                    
+                    buffer = io.BytesIO()
+                    doc = SimpleDocTemplate(buffer, pagesize=letter)
+                    styles = getSampleStyleSheet()
+                    
+                    # Custom styles
+                    title_style = ParagraphStyle('CustomTitle', parent=styles['Heading1'], fontSize=16, spaceAfter=12)
+                    heading_style = ParagraphStyle('CustomHeading', parent=styles['Heading2'], fontSize=14, spaceAfter=8)
+                    normal_style = ParagraphStyle('CustomNormal', parent=styles['Normal'], fontSize=10, spaceAfter=6)
+                    bullet_style = ParagraphStyle('CustomBullet', parent=styles['Normal'], fontSize=10, leftIndent=20, spaceAfter=4)
+                    
+                    story = []
+                    
+                    # Title
+                    story.append(Paragraph("UCX Troubleshooting Assistant Response", title_style))
+                    story.append(Spacer(1, 12))
+                    
+                    # Metadata
+                    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                    story.append(Paragraph(f"<b>Date:</b> {timestamp}", normal_style))
+                    story.append(Paragraph(f"<b>Question:</b> {question}", normal_style))
+                    story.append(Spacer(1, 12))
+                    
+                    # Executive Summary
+                    story.append(Paragraph("Executive Summary", heading_style))
+                    if key_points:
+                        for point in key_points:
+                            clean_point = point.replace('**', '<b>').replace('**', '</b>')
+                            story.append(Paragraph(f"• {clean_point}", bullet_style))
+                    else:
+                        first_para = response.split('\n\n')[0] if response else ""
+                        story.append(Paragraph(first_para, normal_style))
+                    
+                    story.append(Spacer(1, 12))
+                    
+                    # Detailed Information
+                    story.append(Paragraph("Detailed Information", heading_style))
+                    
+                    # Clean and format the response for PDF
+                    clean_response = response.replace('**', '<b>').replace('**', '</b>')
+                    clean_response = clean_response.replace('# ', '').replace('## ', '').replace('### ', '')
+                    
+                    # Split into paragraphs and add to PDF
+                    paragraphs = clean_response.split('\n\n')
+                    for para in paragraphs:
+                        if para.strip():
+                            story.append(Paragraph(para.strip(), normal_style))
+                    
+                    story.append(Spacer(1, 24))
+                    story.append(Paragraph("<i>Generated by UCX Troubleshooting Assistant</i>", normal_style))
+                    
+                    doc.build(story)
+                    buffer.seek(0)
+                    return buffer.getvalue()
+                    
+                except ImportError:
+                    # Fallback: create a simple text-based PDF using HTML to PDF conversion
+                    return create_simple_pdf_fallback(question, response, key_points)
+            
+            def create_simple_pdf_fallback(question, response, key_points):
+                """Simple HTML-based PDF fallback"""
+                from datetime import datetime
+                
+                timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                
+                html_content = f"""
+                <html>
+                <head>
+                    <style>
+                        body {{ font-family: Arial, sans-serif; margin: 40px; }}
+                        h1 {{ color: #333; }}
+                        h2 {{ color: #666; margin-top: 20px; }}
+                        .metadata {{ background: #f5f5f5; padding: 10px; border-radius: 5px; }}
+                        .summary {{ background: #e8f4f8; padding: 15px; border-radius: 5px; }}
+                        ul {{ margin: 10px 0; }}
+                        li {{ margin: 5px 0; }}
+                    </style>
+                </head>
+                <body>
+                    <h1>UCX Troubleshooting Assistant Response</h1>
+                    
+                    <div class="metadata">
+                        <p><strong>Date:</strong> {timestamp}</p>
+                        <p><strong>Question:</strong> {question}</p>
+                    </div>
+                    
+                    <h2>Executive Summary</h2>
+                    <div class="summary">
+                        <ul>
+                """
+                
+                if key_points:
+                    for point in key_points:
+                        html_content += f"<li>{point}</li>"
+                else:
+                    first_para = response.split('\n\n')[0] if response else ""
+                    html_content += f"<li>{first_para}</li>"
+                
+                # Clean response for HTML
+                clean_response = response.replace('**', '<strong>').replace('**', '</strong>')
+                clean_response = clean_response.replace('\n', '<br>')
+                
+                html_content += f"""
+                        </ul>
+                    </div>
+                    
+                    <h2>Detailed Information</h2>
+                    <div>{clean_response}</div>
+                    
+                    <hr>
+                    <p><em>Generated by UCX Troubleshooting Assistant</em></p>
+                </body>
+                </html>
+                """
+                
+                # Convert HTML to bytes (browsers can print this to PDF)
+                return html_content.encode('utf-8')
+            
+            # Generate PDF content once and store in session state to prevent button disappearing
+            pdf_session_key = f"pdf_data_{hash(assistant_response)}"
+            
+            if pdf_session_key not in st.session_state:
+                try:
+                    import io
+                    from reportlab.lib.pagesizes import letter
+                    from reportlab.lib.styles import getSampleStyleSheet
+                    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
+                    
+                    # Generate PDF content
+                    pdf_buffer = io.BytesIO()
+                    doc = SimpleDocTemplate(pdf_buffer, pagesize=letter)
+                    styles = getSampleStyleSheet()
+                    story = []
+                    
+                    # Add content
+                    story.append(Paragraph("UCX Troubleshooting Assistant Response", styles['Title']))
+                    story.append(Spacer(1, 12))
+                    story.append(Paragraph(f"Date: {time.strftime('%Y-%m-%d %H:%M:%S')}", styles['Normal']))
+                    story.append(Paragraph(f"Question: {prompt}", styles['Normal']))
+                    story.append(Spacer(1, 12))
+                    
+                    # Executive Summary
+                    story.append(Paragraph("Executive Summary", styles['Heading2']))
+                    if key_points:
+                        for point in key_points:
+                            clean_point = point.replace('**', '').replace('*', '')
+                            story.append(Paragraph(f"• {clean_point}", styles['Normal']))
+                    
+                    story.append(Spacer(1, 12))
+                    story.append(Paragraph("Detailed Information", styles['Heading2']))
+                    
+                    # Clean response for PDF
+                    clean_response = assistant_response.replace('**', '').replace('#', '').replace('*', '')
+                    paragraphs = clean_response.split('\n\n')
+                    for para in paragraphs:
+                        if para.strip():
+                            story.append(Paragraph(para.strip(), styles['Normal']))
+                    
+                    doc.build(story)
+                    st.session_state[pdf_session_key] = pdf_buffer.getvalue()
+                    pdf_buffer.close()
+                    
+                except Exception as e:
+                    st.session_state[pdf_session_key] = None
+                    st.error(f"PDF generation failed: {e}")
+            
+            # Compact download section with persistent button
+            if st.session_state.get(pdf_session_key):
+                # Create a unique persistent key that won't change on rerun
+                persistent_key = f"pdf_download_{abs(hash(assistant_response))}"
+                
+                # Mark this response as having a download available
+                if f"has_download_{persistent_key}" not in st.session_state:
+                    st.session_state[f"has_download_{persistent_key}"] = True
+                
+                st.markdown("---")
+                
+                # Compact download area
+                col1, col2 = st.columns([4, 1])
+                
+                with col1:
+                    word_count = len(assistant_response.split())
+                    st.markdown(f"**💾 Download available** • {word_count} words • Ready for customer documentation")
+                
+                with col2:
+                    # Small icon-sized download button that persists
+                    st.download_button(
+                        label="📄",
+                        data=st.session_state[pdf_session_key],
+                        file_name=f"UCX_Response_{time.strftime('%Y%m%d_%H%M%S')}.pdf",
+                        mime="application/pdf",
+                        help="Download PDF report",
+                        key=persistent_key,
+                        type="secondary"
+                    )
 
         # Add assistant response to chat history
         st.session_state.messages.append({"role": "assistant", "content": assistant_response})
