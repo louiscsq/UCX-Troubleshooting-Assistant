@@ -29,6 +29,9 @@ summarising_endpoint = dbutils.widgets.get("summarising_endpoint")
 dbutils.widgets.text("table_codebase", "", "")
 table_codebase = dbutils.widgets.get("table_codebase")
 
+dbutils.widgets.text("github_token", "", "")
+github_token = dbutils.widgets.get("github_token")
+
 # COMMAND ----------
 
 # MAGIC %md
@@ -91,9 +94,6 @@ def get_sql_files_from_github(repo, token=None):
     
     fetch_contents()
     return sql_contents
-
-# Add your GitHub token here
-github_token = ""
 
 sql_data = get_sql_files_from_github(repo, token=github_token)
 print(f"Found {len(sql_data)} SQL files")
