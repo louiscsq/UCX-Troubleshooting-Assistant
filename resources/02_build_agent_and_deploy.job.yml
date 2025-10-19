@@ -1,7 +1,7 @@
 resources:
   jobs:
-    build_agent:
-      name: build_agent_and_deploy
+    w02_build_agent_and_deploy:
+      name: w02_build_agent_and_deploy
       queue:
         enabled: true
 

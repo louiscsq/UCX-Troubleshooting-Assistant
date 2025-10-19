@@ -8,7 +8,7 @@ include:
 variables:
   audit_table:
     description: "Table name for chat interactions logs in catalog.schema.table format"
-    default: "btafur_catalog.default.ucx_chat_interactions"
+    default: "btafur.default.ucx_chat_interactions"
   repo:
     description: "GitHub Repo to use as data source"
     default: "databrickslabs/ucx"
@@ -17,22 +17,25 @@ variables:
     default: "databricks-claude-sonnet-4-5"
   table_codebase:
     description: "Table to save codebase information and generate vector store in catalog.schema.table format"
-    default: "btafur_catalog.default.ucx_codebase"
+    default: "btafur.default.ucx_codebase"
   table_documentation:
     description: "Table to save documentation information and generate vector store in catalog.schema.table format"
-    default: "btafur_catalog.default.ucx_documentation"
+    default: "btafur.default.ucx_documentation"
   uc_agent_model:
     description: "Model location in Unity Catalog in catalog.schema.table format"
-    default: "btafur_catalog.default.ucx_agent"
+    default: "btafur.default.ucx_agent"
+  vector_search_endpoint:
+    description: "Vector Search Endpoint to use for vector search"
+    default: "btafur_vector_search"
 
 targets:
   dev:
     workspace:
-      host: https://e2-demo-field-eng.cloud.databricks.com/
+      host: https://adb-984752964297111.11.azuredatabricks.net/
     default: true
 
 
   prod:
     workspace:
-      host: https://e2-demo-field-eng.cloud.databricks.com/
+      host: https://adb-984752964297111.11.azuredatabricks.net/
       

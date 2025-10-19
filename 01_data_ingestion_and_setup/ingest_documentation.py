@@ -11,6 +11,9 @@ repo_url = f"https://github.com/{repo}"
 dbutils.widgets.text("table_documentation", "", "")
 table_documentation = dbutils.widgets.get("table_documentation")
 
+dbutils.widgets.text("github_token", "", "")
+github_token = dbutils.widgets.get("github_token")
+
 # COMMAND ----------
 
 # MAGIC %md
@@ -102,10 +105,10 @@ def ingest_readme_data_simple(repo_url, chunk_size=1500, github_token=None):
             records.append({
                 'chunk_id': f"chunk:{chunk_id:05}",
                 'file_name': file_path.split('/')[-1],
-                'file_path': repo_url + '/tree/main/' + file_path,
+                'file_url': repo_url + '/tree/main/' + file_path,
                 'chunk_index': i + 1,
                 'total_chunks': num_chunks,
-                'content': chunk_content,
+                'embed_input': chunk_content,
                 'doc_type': doc['type'],
                 'char_count': len(chunk_content)
             })
@@ -129,5 +132,10 @@ def ingest_readme_data_simple(repo_url, chunk_size=1500, github_token=None):
 
 result = ingest_readme_data_simple(
     repo_url=repo_url, 
-    github_token=""
+    github_token=github_token
 )
+
+# COMMAND ----------
+
+# MAGIC %sql
+# MAGIC ALTER TABLE IDENTIFIER(:table_documentation) SET TBLPROPERTIES (delta.enableChangeDataFeed = true)

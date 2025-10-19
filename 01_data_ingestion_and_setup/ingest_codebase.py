@@ -83,7 +83,7 @@ def get_sql_files_from_github(repo, token=None):
             if item['type'] == 'file' and item['name'].endswith('.sql'):
                 file_resp = requests.get(item['download_url'], headers=headers)
                 sql_contents.append({
-                    'code_id': f"sql:{str(c).zfill(3)}",
+                    'chunk_id': f"sql:{str(c).zfill(3)}",
                     'file_name': item['name'],
                     'file_path': item['path'],
                     'definition': file_resp.text
@@ -118,7 +118,7 @@ embed_inputs = []
 
 for i, code_metadata in enumerate(data.values(), start=1):
     record = code_metadata.copy()
-    record['code_id'] = f"code:{i:03}"
+    record['chunk_id'] = f"code:{i:03}"
     records.append(record)
 
 pdf = pd.DataFrame(records)
@@ -127,7 +127,7 @@ display(python_df)
 
 # COMMAND ----------
 
-combined_df = sql_df.select("code_id", "file_name", "definition").union(python_df.select("code_id", "file_name", "definition"))
+combined_df = sql_df.select("chunk_id", "file_name", "definition").union(python_df.select("chunk_id", "file_name", "definition"))
 
 # COMMAND ----------
 
@@ -169,8 +169,13 @@ print(f"{combined_df.count()} documents indexed")
 
 # MAGIC %sql
 # MAGIC CREATE OR REPLACE TABLE IDENTIFIER(:table_codebase) AS 
-# MAGIC SELECT *, CONCAT("https://github.com/search?q=repo:", :repo ,"+path:/", file_name, "&type=code") AS file_search_url FROM IDENTIFIER(:table_codebase)
+# MAGIC SELECT *, CONCAT("https://github.com/search?q=repo:", :repo ,"+path:/", file_name, "&type=code") AS file_url FROM IDENTIFIER(:table_codebase)
 # MAGIC
+
+# COMMAND ----------
+
+# MAGIC %sql
+# MAGIC ALTER TABLE IDENTIFIER(:table_codebase) SET TBLPROPERTIES (delta.enableChangeDataFeed = true)
 
 # COMMAND ----------
 

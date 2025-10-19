@@ -1,7 +1,7 @@
 resources:
   jobs:
-    data_ingestion_and_setup:
-      name: data_ingestion_and_setup
+    w01_data_ingestion_and_setup:
+      name: w01_data_ingestion_and_setup
       queue:
         enabled: true
 
@@ -14,6 +14,10 @@ resources:
           default: "${var.table_codebase}"
         - name: "table_documentation"
           default: "${var.table_documentation}"
+        - name: "github_token"
+          default: ""
+        - name: "vector_search_endpoint"
+          default: "${var.vector_search_endpoint}"
 
       tasks:
         - task_key: ingest_documentation
@@ -25,6 +29,23 @@ resources:
           notebook_task:
             notebook_path: "../01_data_ingestion_and_setup/ingest_codebase.py"
           environment_key: env2
+
+        - task_key: create_vector_codebase
+          notebook_task:
+            notebook_path: "../01_data_ingestion_and_setup/create_vector.py"
+            base_parameters:
+              table_source: "${var.table_codebase}"
+          depends_on:
+            - task_key: ingest_codebase
+            - task_key: ingest_documentation
+        
+        - task_key: create_vector_documentation
+          notebook_task:
+            notebook_path: "../01_data_ingestion_and_setup/create_vector.py"
+            base_parameters:
+              table_source: "${var.table_documentation}"
+          depends_on:
+            - task_key: create_vector_codebase
           
       environments:
       - environment_key: env2

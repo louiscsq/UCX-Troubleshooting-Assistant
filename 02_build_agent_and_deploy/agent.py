@@ -113,7 +113,7 @@ VECTOR_SEARCH_TOOLS.append(
   VectorSearchRetrieverTool(
     index_name="btafur_catalog.default.ucx_documentation_vector",
     tool_name="docs_retriever",
-    doc_uri="file_path",
+    doc_uri="file_url",
     tool_description="Retrieves UCX documentation including user guides, CLI commands, workflow descriptions, and feature explanations. Use this for understanding user-facing functionality and usage patterns. But always confirm with the codebase",
     num_results=10
     
@@ -123,7 +123,7 @@ VECTOR_SEARCH_TOOLS.append(
   VectorSearchRetrieverTool(
     index_name="btafur_catalog.default.ucx_codebase_vector",
     tool_name="codebase_retriever",
-    doc_uri="file_search_url",
+    doc_uri="file_url",
     tool_description="Retrieves UCX source code including Python/SQL function definitions, classes, and implementation details. Use this to verify implementation details, validate that features exist, or understand technical internals. Always cross-reference with documentation to confirm user-facing availability.",
     num_results=8
   )
