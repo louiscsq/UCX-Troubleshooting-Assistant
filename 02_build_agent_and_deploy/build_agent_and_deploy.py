@@ -9,8 +9,29 @@
 
 # COMMAND ----------
 
+import os
+import json
+
 dbutils.widgets.text("uc_agent_model", "", "")
 uc_agent_model = dbutils.widgets.get("uc_agent_model")
+
+dbutils.widgets.text("table_documentation", "", "")
+table_documentation = dbutils.widgets.get("table_documentation")
+
+dbutils.widgets.text("table_codebase", "", "")
+table_codebase = dbutils.widgets.get("table_codebase")
+
+# Write vector search configuration for the agent to use
+# This works in serverless clusters where environment variables don't persist
+config = {}
+if table_documentation:
+    config["documentation_index"] = f"{table_documentation}_vector"
+if table_codebase:
+    config["codebase_index"] = f"{table_codebase}_vector"
+
+if config:
+    with open("vector_search_config.json", "w") as f:
+        json.dump(config, f)
 
 # COMMAND ----------
 
@@ -75,6 +96,7 @@ with mlflow.start_run():
             f"databricks-connect=={get_distribution('databricks-connect').version}",
         ],
         resources=resources,
+        artifacts={"vector_search_config.json": "vector_search_config.json"} if os.path.exists("vector_search_config.json") else None,
     )
 
 # COMMAND ----------
@@ -164,7 +186,11 @@ latest_version = registered_model_version.version
 for deployment in deployments:
     if deployment.model_name == UC_MODEL_NAME:
         print(f"Deleting deployment: model={deployment.model_name}, version={deployment.model_version}")
-        delete_deployment(model_name=deployment.model_name, model_version=deployment.model_version)
+        try:
+            delete_deployment(model_name=deployment.model_name, model_version=deployment.model_version)
+            print(f"Successfully deleted deployment for version {deployment.model_version}")
+        except ValueError as e:
+            print(f"Skipping deletion for version {deployment.model_version}: {str(e)}")
 
 
 deployment_info = agents.deploy(

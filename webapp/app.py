@@ -791,3 +791,75 @@ if prompt:
     
     # Add assistant response to history
     st.session_state.history.append(assistant_response)
+    # Generate PDF content once and store in session state to prevent button disappearing
+    pdf_session_key = f"pdf_data_{hash(response_text)}"
+    
+    if pdf_session_key not in st.session_state:
+        try:
+            import io
+            from reportlab.lib.pagesizes import letter
+            from reportlab.lib.styles import getSampleStyleSheet
+            from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
+            
+            # Generate PDF content
+            pdf_buffer = io.BytesIO()
+            doc = SimpleDocTemplate(pdf_buffer, pagesize=letter)
+            styles = getSampleStyleSheet()
+            story = []
+            
+            # Add content
+            story.append(Paragraph("UCX Troubleshooting Assistant Response", styles['Title']))
+            story.append(Spacer(1, 12))
+            story.append(Paragraph(f"Date: {time.strftime('%Y-%m-%d %H:%M:%S')}", styles['Normal']))
+            story.append(Paragraph(f"Question: {prompt}", styles['Normal']))
+            story.append(Spacer(1, 12))
+            
+            story.append(Paragraph("Response", styles['Heading2']))
+            
+            # Clean response for PDF
+            clean_response = response_text.replace('**', '').replace('#', '').replace('*', '')
+            paragraphs = clean_response.split('\n\n')
+            for para in paragraphs:
+                if para.strip():
+                    story.append(Paragraph(para.strip(), styles['Normal']))
+            
+            doc.build(story)
+            st.session_state[pdf_session_key] = pdf_buffer.getvalue()
+            pdf_buffer.close()
+            
+        except Exception as e:
+            st.session_state[pdf_session_key] = None
+            logger.error(f"PDF generation failed: {e}")
+    
+    # Compact download section with persistent button
+    if st.session_state.get(pdf_session_key):
+        # Create a unique persistent key that won't change on rerun
+        persistent_key = f"pdf_download_{abs(hash(response_text))}"
+        
+        # Mark this response as having a download available
+        if f"has_download_{persistent_key}" not in st.session_state:
+            st.session_state[f"has_download_{persistent_key}"] = True
+        
+        st.markdown("---")
+        
+        # Compact download area
+        col1, col2 = st.columns([4, 1])
+        
+        with col1:
+            word_count = len(response_text.split())
+            st.markdown(f"**💾 Download available** • {word_count} words • Ready for customer documentation")
+        
+        with col2:
+            # Small icon-sized download button that persists
+            st.download_button(
+                label="📄",
+                data=st.session_state[pdf_session_key],
+                file_name=f"UCX_Response_{time.strftime('%Y%m%d_%H%M%S')}.pdf",
+                mime="application/pdf",
+                help="Download PDF report",
+                key=persistent_key,
+                type="secondary"
+            )
+    
+    # Add assistant response to chat history
+    st.session_state.history.append(assistant_response)

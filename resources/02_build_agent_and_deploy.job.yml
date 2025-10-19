@@ -8,6 +8,10 @@ resources:
       parameters:
         - name: "uc_agent_model"
           default: "${var.uc_agent_model}"
+        - name: "table_documentation"
+          default: "${var.table_documentation}"
+        - name: "table_codebase"
+          default: "${var.table_codebase}"
 
       tasks:
         - task_key: build_agent_and_deploy

@@ -6,27 +6,31 @@ include:
   - resources/*/*.yml
 
 variables:
-  audit_table:
-    description: "Table name for chat interactions logs in catalog.schema.table format"
-    default: "btafur.default.ucx_chat_interactions"
   repo:
     description: "GitHub Repo to use as data source"
     default: "databrickslabs/ucx"
-  summarising_endpoint:
-    description: "Foundational LLM endpoint to use for summarising the codebase"
-    default: "databricks-claude-sonnet-4-5"
-  table_codebase:
-    description: "Table to save codebase information and generate vector store in catalog.schema.table format"
-    default: "btafur.default.ucx_codebase"
-  table_documentation:
-    description: "Table to save documentation information and generate vector store in catalog.schema.table format"
-    default: "btafur.default.ucx_documentation"
-  uc_agent_model:
-    description: "Model location in Unity Catalog in catalog.schema.table format"
-    default: "btafur.default.ucx_agent"
   vector_search_endpoint:
     description: "Vector Search Endpoint to use for vector search"
     default: "btafur_vector_search"
+  schema:
+    description: "Schema to use for the UCX Assistant"
+    default: "btafur.default"
+  #Only update below if you want to change specific table names.
+  summarising_endpoint:
+    description: "Foundational LLM endpoint to use for summarising the codebase"
+    default: "databricks-claude-sonnet-4-5"
+  audit_table:
+    description: "Table name for chat interactions logs in catalog.schema.table format"
+    default: "${var.schema}.ucx_chat_interactions"
+  table_codebase:
+    description: "Table to save codebase information and generate vector store in catalog.schema.table format"
+    default: "${var.schema}.ucx_codebase"
+  table_documentation:
+    description: "Table to save documentation information and generate vector store in catalog.schema.table format"
+    default: "${var.schema}.ucx_documentation"
+  uc_agent_model:
+    description: "Model location in Unity Catalog in catalog.schema.table format"
+    default: "${var.schema}.ucx_agent"
 
 targets:
   dev:

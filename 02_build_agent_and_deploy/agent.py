@@ -1,5 +1,7 @@
 import json
+import os
 import warnings
+from pathlib import Path
 from typing import Any, Callable, Generator, Optional
 from uuid import uuid4
 
@@ -109,19 +111,58 @@ for tool_spec in uc_toolkit.tools:
 # List to store vector search tool instances for unstructured retrieval.
 VECTOR_SEARCH_TOOLS = []
 
+# Load vector search configuration from file if it exists (for serverless compatibility)
+# Otherwise fall back to defaults
+def load_vector_search_config():
+    """Load vector search index configuration from file or use defaults."""
+    default_config = {
+        "documentation_index": "btafur_catalog.default.ucx_documentation_vector",
+        "codebase_index": "btafur_catalog.default.ucx_codebase_vector"
+    }
+    
+    # Check multiple locations for the config file:
+    # 1. Current directory (for local development/testing)
+    # 2. artifacts/ subdirectory (where MLflow places logged artifacts relative to agent.py)
+    # 3. /model/artifacts/ (absolute path in model serving environment)
+    possible_paths = [
+        Path("vector_search_config.json"),
+        Path("artifacts/vector_search_config.json"),
+        Path("/model/artifacts/vector_search_config.json"),
+    ]
+    
+    for config_file in possible_paths:
+        if config_file.exists():
+            try:
+                with open(config_file, "r") as f:
+                    config = json.load(f)
+                    print(f"Loaded vector search config from: {config_file}")
+                    return {
+                        "documentation_index": config.get("documentation_index", default_config["documentation_index"]),
+                        "codebase_index": config.get("codebase_index", default_config["codebase_index"])
+                    }
+            except Exception as e:
+                print(f"Warning: Failed to load vector search config from {config_file}: {e}")
+                continue
+    
+    print(f"No vector search config file found in any expected location. Using defaults: {default_config}")
+    return default_config
+
+vector_config = load_vector_search_config()
+DOCUMENTATION_INDEX = vector_config["documentation_index"]
+CODEBASE_INDEX = vector_config["codebase_index"]
+
 VECTOR_SEARCH_TOOLS.append(
   VectorSearchRetrieverTool(
-    index_name="btafur_catalog.default.ucx_documentation_vector",
+    index_name=DOCUMENTATION_INDEX,
     tool_name="docs_retriever",
     doc_uri="file_url",
     tool_description="Retrieves UCX documentation including user guides, CLI commands, workflow descriptions, and feature explanations. Use this for understanding user-facing functionality and usage patterns. But always confirm with the codebase",
     num_results=10
-    
   )
 )
 VECTOR_SEARCH_TOOLS.append(
   VectorSearchRetrieverTool(
-    index_name="btafur_catalog.default.ucx_codebase_vector",
+    index_name=CODEBASE_INDEX,
     tool_name="codebase_retriever",
     doc_uri="file_url",
     tool_description="Retrieves UCX source code including Python/SQL function definitions, classes, and implementation details. Use this to verify implementation details, validate that features exist, or understand technical internals. Always cross-reference with documentation to confirm user-facing availability.",
