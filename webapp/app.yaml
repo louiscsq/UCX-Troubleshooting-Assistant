@@ -10,6 +10,6 @@ env:
   - name: "SERVING_ENDPOINT"
     value: "agents_btafur-default-ucx_agent"
   - name: "AUDIT_TABLE"
-    value: "btafur_catalog.default.ucx_chat_interactions"
+    value: "btafur.default.ucx_chat_interactions"
   - name: "AUDIT_DEBUG"
     value: "false"

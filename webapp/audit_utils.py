@@ -50,19 +50,23 @@ class ChatInteraction:
 class DeltaChatAuditor:
     """Handles audit logging for UCX troubleshooting chat interactions using Delta tables"""
     
-    def __init__(self, catalog_name: str = "main", schema_name: str = "ucx_audit", table_name: str = "chat_interactions"):
+    def __init__(self, table_name: str = "main.ucx_audit.chat_interactions"):
         """
         Initialize the Delta chat auditor
         
         Args:
-            catalog_name: Unity Catalog name for the audit table
-            schema_name: Schema name for the audit table
-            table_name: Table name for audit interactions
+            table_name: Full table name in format catalog.schema.table
         """
-        self.catalog_name = catalog_name
-        self.schema_name = schema_name
-        self.table_name = table_name
-        self.full_table_name = f"{catalog_name}.{schema_name}.{table_name}"
+        parts = table_name.split('.')
+        if len(parts) == 3:
+            self.catalog_name, self.schema_name, self.table_name = parts
+        else:
+            # Fallback for incomplete table names
+            self.catalog_name = "main"
+            self.schema_name = "ucx_audit"
+            self.table_name = "chat_interactions"
+        
+        self.full_table_name = f"{self.catalog_name}.{self.schema_name}.{self.table_name}"
         
         if not DATABRICKS_AVAILABLE:
             logger.info("Using JSON file audit logging. Delta Lake mode available when Spark compute is configured.")
@@ -657,33 +661,19 @@ def get_auditor(use_delta: bool = True, **kwargs) -> DeltaChatAuditor:
     Args:
         use_delta: Whether to use Delta table auditing (defaults to True)
         **kwargs: Additional arguments passed to DeltaChatAuditor constructor
-                 Supported: catalog_name, schema_name, table_name
+                 Supported: table_name
     
     Returns:
         DeltaChatAuditor instance
     """
     global _auditor_instance
     if _auditor_instance is None:
-        # Get configuration from environment variables with fallbacks
         import os
         
-        # Set defaults from environment or use provided kwargs
-        config = {
-            'catalog_name': kwargs.get('catalog_name', os.getenv('AUDIT_CATALOG', 'main')),
-            'schema_name': kwargs.get('schema_name', os.getenv('AUDIT_SCHEMA', 'ucx_audit')),  
-            'table_name': kwargs.get('table_name', os.getenv('AUDIT_TABLE', 'chat_interactions'))
-        }
+        table_name = kwargs.get('table_name', os.getenv('AUDIT_TABLE', 'main.ucx_audit.chat_interactions'))
         
-        # Override with any explicitly provided kwargs
-        config.update({k: v for k, v in kwargs.items() if k in ['catalog_name', 'schema_name', 'table_name']})
-        
-        if use_delta:
-            _auditor_instance = DeltaChatAuditor(**config)
-        else:
-            # For backward compatibility, still create DeltaChatAuditor but it will fall back to JSON
-            _auditor_instance = DeltaChatAuditor(**config)
-            
-        logger.info(f"Initialized audit system with: {config['catalog_name']}.{config['schema_name']}.{config['table_name']}")
+        _auditor_instance = DeltaChatAuditor(table_name=table_name)
+        logger.info(f"Initialized audit system: {_auditor_instance.full_table_name}")
         
     return _auditor_instance
 

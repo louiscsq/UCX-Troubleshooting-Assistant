@@ -46,19 +46,23 @@ class ChatInteraction:
 class SQLChatAuditor:
     """Handles audit logging using Databricks SQL Warehouse - no separate compute needed"""
     
-    def __init__(self, catalog_name: str = "main", schema_name: str = "ucx_audit", table_name: str = "chat_interactions"):
+    def __init__(self, table_name: str = "main.ucx_audit.chat_interactions"):
         """
         Initialize SQL-based chat auditor
         
         Args:
-            catalog_name: Unity Catalog name for the audit table
-            schema_name: Schema name for the audit table  
-            table_name: Table name for audit interactions
+            table_name: Full table name in format catalog.schema.table
         """
-        self.catalog_name = catalog_name
-        self.schema_name = schema_name
-        self.table_name = table_name
-        self.full_table_name = f"{catalog_name}.{schema_name}.{table_name}"
+        parts = table_name.split('.')
+        if len(parts) == 3:
+            self.catalog_name, self.schema_name, self.table_name = parts
+        else:
+            # Fallback for incomplete table names
+            self.catalog_name = "main"
+            self.schema_name = "ucx_audit"
+            self.table_name = "chat_interactions"
+        
+        self.full_table_name = f"{self.catalog_name}.{self.schema_name}.{self.table_name}"
         
         if not SQL_AVAILABLE:
             logger.warning("Databricks SQL connector not available. Falling back to JSON file logging.")
@@ -568,15 +572,9 @@ def get_sql_auditor(**kwargs) -> SQLChatAuditor:
     if _sql_auditor_instance is None:
         import os
         
-        config = {
-            'catalog_name': kwargs.get('catalog_name', os.getenv('AUDIT_CATALOG', 'main')),
-            'schema_name': kwargs.get('schema_name', os.getenv('AUDIT_SCHEMA', 'ucx_audit')),
-            'table_name': kwargs.get('table_name', os.getenv('AUDIT_TABLE', 'chat_interactions'))
-        }
+        table_name = kwargs.get('table_name', os.getenv('AUDIT_TABLE', 'main.ucx_audit.chat_interactions'))
         
-        config.update({k: v for k, v in kwargs.items() if k in ['catalog_name', 'schema_name', 'table_name']})
-        
-        _sql_auditor_instance = SQLChatAuditor(**config)
-        logger.info(f"Initialized SQL audit system: {config['catalog_name']}.{config['schema_name']}.{config['table_name']}")
+        _sql_auditor_instance = SQLChatAuditor(table_name=table_name)
+        logger.info(f"Initialized SQL audit system: {_sql_auditor_instance.full_table_name}")
         
     return _sql_auditor_instance
