@@ -1,0 +1,15 @@
+command: [
+  "streamlit", 
+  "run",
+  "app.py"
+]
+
+env:
+  - name: STREAMLIT_BROWSER_GATHER_USAGE_STATS
+    value: "false"
+  - name: "SERVING_ENDPOINT"
+    value: "agents_btafur_catalog-default-uc_agent"
+  - name: "AUDIT_TABLE"
+    value: "btafur_catalog.default.ucx_chat_interactions"
+  - name: "AUDIT_DEBUG"
+    value: "false"

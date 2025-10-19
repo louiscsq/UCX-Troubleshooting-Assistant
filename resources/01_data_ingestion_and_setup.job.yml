@@ -1,0 +1,32 @@
+resources:
+  jobs:
+    data_ingestion_and_setup:
+      name: data_ingestion_and_setup
+      queue:
+        enabled: true
+
+      parameters:
+        - name: "repo"
+          default: "${var.repo}"
+        - name: "summarising_endpoint"
+          default: "${var.summarising_endpoint}"
+        - name: "table_codebase"
+          default: "${var.table_codebase}"
+        - name: "table_documentation"
+          default: "${var.table_documentation}"
+
+      tasks:
+        - task_key: ingest_documentation
+          notebook_task:
+            notebook_path: "../01_data_ingestion_and_setup/ingest_documentation.py"
+          environment_key: env2
+
+        - task_key: ingest_codebase
+          notebook_task:
+            notebook_path: "../01_data_ingestion_and_setup/ingest_codebase.py"
+          environment_key: env2
+          
+      environments:
+      - environment_key: env2
+        spec:
+          environment_version: "2"
