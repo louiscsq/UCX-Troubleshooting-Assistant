@@ -148,7 +148,7 @@ if "visibility" not in st.session_state:
     st.session_state.visibility = "visible"
     st.session_state.disabled = False
 
-st.title("🔧 UCX Troubleshooting Assistant")
+st.title("UCX Troubleshooting Assistant")
 
 # Check for admin dashboard access via URL parameters
 admin_access = False
@@ -391,8 +391,13 @@ def query_endpoint_and_render(task_type, input_messages):
 def query_chat_completions_endpoint_and_render(input_messages):
     """Handle ChatCompletions streaming format."""
     with st.chat_message("assistant"):
+        thinking_container_placeholder = st.empty()
         response_area = st.empty()
-        response_area.markdown("_Thinking..._")
+        
+        # Show initial thinking state
+        with thinking_container_placeholder.container():
+            with st.expander("🤔 Thinking...", expanded=False):
+                st.markdown("_Processing your request..._")
         
         accumulated_content = ""
         request_id = None
@@ -415,9 +420,15 @@ def query_chat_completions_endpoint_and_render(input_messages):
                     if req_id:
                         request_id = req_id
             
+            # Show done state
+            with thinking_container_placeholder.container():
+                with st.expander("✅ Done", expanded=False):
+                    st.markdown("_Response generated_")
+            
             return AssistantResponse(
                 messages=[{"role": "assistant", "content": accumulated_content}],
-                request_id=request_id
+                request_id=request_id,
+                final_content=accumulated_content
             )
         except Exception:
             response_area.markdown("_Ran into an error. Retrying without streaming..._")
@@ -427,10 +438,17 @@ def query_chat_completions_endpoint_and_render(input_messages):
                 return_traces=True
             )
             response_area.empty()
+            
+            # Extract final content from messages
+            final_content = ""
+            for message in messages:
+                if isinstance(message, dict) and message.get("role") == "assistant" and message.get("content"):
+                    final_content += message.get("content", "")
+            
             with response_area.container():
                 for message in messages:
                     render_message(message)
-            return AssistantResponse(messages=messages, request_id=request_id)
+            return AssistantResponse(messages=messages, request_id=request_id, final_content=final_content)
 
 
 def query_chat_agent_endpoint_and_render(input_messages):
@@ -438,8 +456,13 @@ def query_chat_agent_endpoint_and_render(input_messages):
     from mlflow.types.agent import ChatAgentChunk
     
     with st.chat_message("assistant"):
+        thinking_container_placeholder = st.empty()
         response_area = st.empty()
-        response_area.markdown("_Thinking..._")
+        
+        # Show initial thinking state
+        with thinking_container_placeholder.container():
+            with st.expander("🤔 Thinking...", expanded=False):
+                st.markdown("_Processing your request..._")
         
         message_buffers = OrderedDict()
         request_id = None
@@ -471,13 +494,26 @@ def query_chat_agent_endpoint_and_render(input_messages):
                 with render_area.container():
                     render_message(message_content)
             
+            # Show done state
+            with thinking_container_placeholder.container():
+                with st.expander("✅ Done", expanded=False):
+                    st.markdown("_Response generated_")
+            
             messages = []
             for msg_id, msg_info in message_buffers.items():
                 messages.append(reduce_chat_agent_chunks(msg_info["chunks"]))
             
+            # Extract final content from messages
+            final_content = ""
+            for message in messages:
+                msg_dict = message.model_dump_compat(exclude_none=True)
+                if msg_dict.get("role") == "assistant" and msg_dict.get("content"):
+                    final_content += msg_dict.get("content", "")
+            
             return AssistantResponse(
                 messages=[message.model_dump_compat(exclude_none=True) for message in messages],
-                request_id=request_id
+                request_id=request_id,
+                final_content=final_content
             )
         except Exception:
             response_area.markdown("_Ran into an error. Retrying without streaming..._")
@@ -487,10 +523,17 @@ def query_chat_agent_endpoint_and_render(input_messages):
                 return_traces=True
             )
             response_area.empty()
+            
+            # Extract final content from messages
+            final_content = ""
+            for message in messages:
+                if isinstance(message, dict) and message.get("role") == "assistant" and message.get("content"):
+                    final_content += message.get("content", "")
+            
             with response_area.container():
                 for message in messages:
                     render_message(message)
-            return AssistantResponse(messages=messages, request_id=request_id)
+            return AssistantResponse(messages=messages, request_id=request_id, final_content=final_content)
 
 
 # In app.py, update the query_responses_endpoint_and_render function:
@@ -509,7 +552,12 @@ def query_responses_endpoint_and_render(input_messages):
         thinking_messages = []
         final_message_content = ""
         request_id = None
-        current_step = "🤔 Thinking process..."
+        current_step = "🤔 Thinking..."
+        
+        # Show initial thinking state
+        with thinking_container_placeholder.container():
+            with st.expander(current_step, expanded=False):
+                st.markdown("_Processing your request..._")
 
         try:
             for raw_event in query_endpoint_stream(
@@ -621,8 +669,11 @@ def query_responses_endpoint_and_render(input_messages):
             # Final render with "Done" label
             with thinking_container_placeholder.container():
                 with st.expander("✅ Done", expanded=False):
-                    for msg in thinking_messages:
-                        render_message(msg)
+                    if thinking_messages:
+                        for msg in thinking_messages:
+                            render_message(msg)
+                    else:
+                        st.markdown("_Response generated_")
             
             # Extract the final answer
             message_items = [e for e in all_events if e.get("type") == "message"]
@@ -766,7 +817,16 @@ if prompt:
     # Calculate response time
     response_time_ms = int((time.time() - start_time) * 1000)
     
-    # Extract text content from assistant response for audit logging
+    # Extract final content for PDF (use final_content if available, otherwise extract from messages)
+    final_content_for_pdf = assistant_response.final_content if hasattr(assistant_response, 'final_content') and assistant_response.final_content else ""
+    
+    # If no final_content, extract from messages (fallback for older formats)
+    if not final_content_for_pdf:
+        for msg in assistant_response.messages:
+            if isinstance(msg, dict) and msg.get("role") == "assistant" and msg.get("content"):
+                final_content_for_pdf += msg.get("content", "")
+    
+    # Extract all text content from assistant response for audit logging
     response_text = ""
     for msg in assistant_response.messages:
         if isinstance(msg, dict) and msg.get("content"):
@@ -789,10 +849,8 @@ if prompt:
         error_type_detected=error_type_detected
     )
     
-    # Add assistant response to history
-    st.session_state.history.append(assistant_response)
     # Generate PDF content once and store in session state to prevent button disappearing
-    pdf_session_key = f"pdf_data_{hash(response_text)}"
+    pdf_session_key = f"pdf_data_{hash(final_content_for_pdf)}"
     
     if pdf_session_key not in st.session_state:
         try:
@@ -816,8 +874,8 @@ if prompt:
             
             story.append(Paragraph("Response", styles['Heading2']))
             
-            # Clean response for PDF
-            clean_response = response_text.replace('**', '').replace('#', '').replace('*', '')
+            # Clean response for PDF - use only final content
+            clean_response = final_content_for_pdf.replace('**', '').replace('#', '').replace('*', '')
             paragraphs = clean_response.split('\n\n')
             for para in paragraphs:
                 if para.strip():
@@ -834,7 +892,7 @@ if prompt:
     # Compact download section with persistent button
     if st.session_state.get(pdf_session_key):
         # Create a unique persistent key that won't change on rerun
-        persistent_key = f"pdf_download_{abs(hash(response_text))}"
+        persistent_key = f"pdf_download_{abs(hash(final_content_for_pdf))}"
         
         # Mark this response as having a download available
         if f"has_download_{persistent_key}" not in st.session_state:
@@ -846,7 +904,7 @@ if prompt:
         col1, col2 = st.columns([4, 1])
         
         with col1:
-            word_count = len(response_text.split())
+            word_count = len(final_content_for_pdf.split())
             st.markdown(f"**💾 Download available** • {word_count} words • Ready for customer documentation")
         
         with col2:

@@ -41,7 +41,7 @@ class UserMessage(Message):
 
 
 class AssistantResponse(Message):
-    def __init__(self, messages, request_id, thinking_messages=None, final_content=None):
+    def __init__(self, messages, request_id, thinking_messages=None, final_content=None, pdf_data=None, is_complete=True):
         super().__init__()
         self.messages = messages
         # Request ID tracked to enable submitting feedback on assistant responses via the feedback endpoint
@@ -49,6 +49,10 @@ class AssistantResponse(Message):
         # Separate thinking (tool calls/outputs) from final answer
         self.thinking_messages = thinking_messages or []
         self.final_content = final_content or ""
+        # PDF data for downloadable reports (optional)
+        self.pdf_data = pdf_data
+        # Track completion status for proper rendering
+        self.is_complete = is_complete
 
     def to_input_messages(self):
         return self.messages
@@ -119,7 +123,9 @@ class AssistantResponse(Message):
                 # Show thinking section if we have tool calls/outputs
                 if self.thinking_messages:
                     logger.info(f"  🤔 Rendering {len(self.thinking_messages)} thinking messages")
-                    thinking_container = st.expander("🤔 Thinking process...", expanded=False)
+                    # Use "Done" label for completed responses, "Thinking" for incomplete
+                    expander_label = "✅ Done" if self.is_complete else "🤔 Thinking process..."
+                    thinking_container = st.expander(expander_label, expanded=False)
                     with thinking_container:
                         for msg in self.thinking_messages:
                             render_message(msg)
@@ -158,6 +164,30 @@ class AssistantResponse(Message):
                 # Fallback: render all messages normally (legacy behavior)
                 for msg in self.messages:
                     render_message(msg)
+            
+            # Add download button if PDF is available
+            if self.pdf_data:
+                import time
+                st.markdown("---")
+                
+                # Compact download area
+                col1, col2 = st.columns([4, 1])
+                
+                with col1:
+                    word_count = len(self.final_content.split()) if self.final_content else 0
+                    st.markdown(f"**💾 Download available** • {word_count} words • Ready for customer documentation")
+                
+                with col2:
+                    # Small icon-sized download button that persists
+                    st.download_button(
+                        label="📄",
+                        data=self.pdf_data,
+                        file_name=f"UCX_Response_{time.strftime('%Y%m%d_%H%M%S')}.pdf",
+                        mime="application/pdf",
+                        help="Download PDF report",
+                        key=f"pdf_download_{idx}_{abs(hash(self.final_content))}",
+                        type="secondary"
+                    )
 
             if self.request_id is not None:
                 render_assistant_message_feedback(idx, self.request_id)
