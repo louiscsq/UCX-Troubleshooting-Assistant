@@ -243,7 +243,7 @@ if diagnostics_access:
 
 # Add UCX-specific sidebar
 with st.sidebar:
-    st.header("🛠️ UCX Tools")
+    st.header("Common Troubleshooting Examples")
     
     if st.button("📋 Installation Checklist"):
         troubleshooter = UCXTroubleshooter()
