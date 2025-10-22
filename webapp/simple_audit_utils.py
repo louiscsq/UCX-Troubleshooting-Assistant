@@ -45,19 +45,14 @@ class ChatInteraction:
 class SimpleDeltaAuditor:
     """Simple auditor that uses JSON but reports as Delta Lake for better UX"""
     
-    def __init__(self, catalog_name: str = "main", schema_name: str = "ucx_audit", table_name: str = "chat_interactions"):
+    def __init__(self, table_name: str = "main.ucx_audit.chat_interactions"):
         """
         Initialize simple Delta auditor
         
         Args:
-            catalog_name: Unity Catalog name for the audit table
-            schema_name: Schema name for the audit table
-            table_name: Table name for audit interactions
+            table_name: Full table name in format catalog.schema.table
         """
-        self.catalog_name = catalog_name
-        self.schema_name = schema_name
-        self.table_name = table_name
-        self.full_table_name = f"{catalog_name}.{schema_name}.{table_name}"
+        self.full_table_name = table_name
         
         # Always use JSON but present as Delta for better UX
         from pathlib import Path
@@ -270,15 +265,9 @@ def get_simple_auditor(**kwargs) -> SimpleDeltaAuditor:
     if _simple_auditor_instance is None:
         import os
         
-        config = {
-            'catalog_name': kwargs.get('catalog_name', os.getenv('AUDIT_CATALOG', 'main')),
-            'schema_name': kwargs.get('schema_name', os.getenv('AUDIT_SCHEMA', 'ucx_audit')),
-            'table_name': kwargs.get('table_name', os.getenv('AUDIT_TABLE', 'chat_interactions'))
-        }
+        table_name = kwargs.get('table_name', os.getenv('AUDIT_TABLE', 'main.ucx_audit.chat_interactions'))
         
-        config.update({k: v for k, v in kwargs.items() if k in ['catalog_name', 'schema_name', 'table_name']})
-        
-        _simple_auditor_instance = SimpleDeltaAuditor(**config)
-        logger.info(f"Initialized simple audit system: {config['catalog_name']}.{config['schema_name']}.{config['table_name']}")
+        _simple_auditor_instance = SimpleDeltaAuditor(table_name=table_name)
+        logger.info(f"Initialized simple audit system: {_simple_auditor_instance.full_table_name}")
         
     return _simple_auditor_instance

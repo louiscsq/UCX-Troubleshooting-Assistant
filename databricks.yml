@@ -1,41 +1,45 @@
 bundle:
   name: ucx-assistant
 
-workspace:
-  profile: e2-demo-field-eng
+include:
+  - resources/*.yml
+  - resources/*/*.yml
 
 variables:
-  audit_catalog:
-    description: "Unity Catalog name for audit tables"
-    default: "louis"
-  audit_schema:
-    description: "Schema name for audit tables" 
-    default: "ucx_assistant"
+  repo:
+    description: "GitHub Repo to use as data source"
+    default: "databrickslabs/ucx"
+  vector_search_endpoint:
+    description: "Vector Search Endpoint to use for vector search"
+    default: "btafur_vector_search"
+  schema:
+    description: "Schema to use for the UCX Assistant"
+    default: "btafur.default"
+  #Only update below if you want to change specific table names.
+  summarising_endpoint:
+    description: "Foundational LLM endpoint to use for summarising the codebase"
+    default: "databricks-claude-sonnet-4-5"
   audit_table:
-    description: "Table name for chat interactions"
-    default: "chat_interactions"
-
-resources:
-  apps:
-    ucx_assistant_app:
-      name: ${bundle.target}-${bundle.name}
-      description: "UCX Troubleshooting Assistant - Unity Catalog Migration Helper"
-      source_code_path: ./
+    description: "Table name for chat interactions logs in catalog.schema.table format"
+    default: "${var.schema}.ucx_chat_interactions"
+  table_codebase:
+    description: "Table to save codebase information and generate vector store in catalog.schema.table format"
+    default: "${var.schema}.ucx_codebase"
+  table_documentation:
+    description: "Table to save documentation information and generate vector store in catalog.schema.table format"
+    default: "${var.schema}.ucx_documentation"
+  uc_agent_model:
+    description: "Model location in Unity Catalog in catalog.schema.table format"
+    default: "${var.schema}.ucx_agent"
 
 targets:
   dev:
-    default: true
     workspace:
-      root_path: /Workspace/Users/${workspace.current_user.userName}/databricks_apps/ucx-assistant_dev
-    variables:
-      audit_catalog: "louis"
-      audit_schema: "ucx_assistant_dev" 
-      audit_table: "chat_interactions"
+      host: https://adb-984752964297111.11.azuredatabricks.net/
+    default: true
+
 
   prod:
     workspace:
-      root_path: /Workspace/Users/${workspace.current_user.userName}/databricks_apps/ucx-assistant_prod
-    variables:
-      audit_catalog: "louis"
-      audit_schema: "ucx_assistant_prod"
-      audit_table: "chat_interactions"
+      host: https://adb-984752964297111.11.azuredatabricks.net/
+      

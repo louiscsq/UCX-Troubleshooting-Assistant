@@ -1,0 +1,19 @@
+resources:
+  jobs:
+    w02_build_agent_and_deploy:
+      name: w02_build_agent_and_deploy
+      queue:
+        enabled: true
+
+      parameters:
+        - name: "uc_agent_model"
+          default: "${var.uc_agent_model}"
+        - name: "table_documentation"
+          default: "${var.table_documentation}"
+        - name: "table_codebase"
+          default: "${var.table_codebase}"
+
+      tasks:
+        - task_key: build_agent_and_deploy
+          notebook_task:
+            notebook_path: "../02_build_agent_and_deploy/build_agent_and_deploy.py"
