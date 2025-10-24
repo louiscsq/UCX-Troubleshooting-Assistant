@@ -73,10 +73,14 @@ UCX Troubleshooting App
    ```
 
 2. **Update configuration**:
-   ```bash
-   # Edit databricks.yml - update workspace host
-   vim databricks.yml
+   Edit `databricks.yaml`:
+   ```yaml
+   variables:
+      vector_search_endpoint: "<your_vector_search_endpoint>"
+      schema: "catalog.schema"      # Must exist and be writable
+      host: "https://<your-workspace>.cloud.databricks.com"
    ```
+
 
 3. **Deploy to Databricks**:
    ```bash
@@ -84,39 +88,39 @@ UCX Troubleshooting App
    databricks bundle deploy --target dev
    ```
 
-4. **Start the app**:
+4. **Run data ingestion workflow**
    ```bash
-   databricks apps start dev-ucx-doctor
+   databricks workflow run w01_data_ingestion_and_setup   --param github_token=<your_github_token>
+   ```
+   > Optional but recommended: prevents GitHub API throttling.
+
+
+5. Update `webapp/app.yaml`:
+   ```yaml
+   env:
+   - name: SERVING_ENDPOINT
+      value: "<your_serving_endpoint_name>"
+   - name: AUDIT_TABLE
+      value: "<catalog.schema.audit_table>"
    ```
 
-### **Configuration Files**
+6. **Grant Permissions**
+   | Resource | Permission | Purpose |
+   |-----------|-------------|----------|
+   | Model Serving Endpoint | `CAN QUERY` | Allow app to invoke the model |
+   | Catalog/Schema | `Data Editor` | Allow app to write audit data |
 
-#### **`databricks.yml`** - Bundle Configuration
-```yaml
-bundle:
-  name: ucx-doctor
 
-workspace:
-  host: https://your-workspace.cloud.databricks.com  # Update this
+   Then redeploy:
+   ```bash
+   databricks bundle deploy
+   ```
 
-resources:
-  apps:
-    ucx_doctor_app:
-      name: ${bundle.target}-${bundle.name}
-      description: "UCX Troubleshooting Assistant"
-      source_code_path: ./
-```
+7. **Launch the App**
+   ```bash
+   databricks bundle run <appname>
+   ```
 
-#### **`app.yaml`** - App Configuration  
-```yaml
-command: ["streamlit", "run", "app.py"]
-
-env:
-  - name: STREAMLIT_BROWSER_GATHER_USAGE_STATS
-    value: "false"
-  - name: "SERVING_ENDPOINT"
-    value: "databricks-claude-sonnet-4"  # Foundation model endpoint
-```
 
 ## 📁 Project Structure
 
