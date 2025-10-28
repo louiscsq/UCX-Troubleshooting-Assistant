@@ -91,7 +91,6 @@ UCX Troubleshooting Assistant
 - Databricks CLI v0.218+ installed and configured
 - Workspace administrator privileges
 - Access to Claude Sonnet 4.5 and Claude Sonnet 4 foundation models
-- **Vector Search endpoint** created or available
 - **Unity Catalog schema** with write permissions
 - (Optional) GitHub personal access token to avoid API rate limits
 
@@ -111,7 +110,7 @@ Edit `databricks.yml` to customize these critical variables:
 variables:
   vector_search_endpoint:
     description: "Vector Search Endpoint to use for vector search"
-    default: "your_vector_search_endpoint"  # ⚠️ REQUIRED: Create or use existing endpoint
+    default: "your_vector_search_endpoint"  # ⚠️ REQUIRED: Provide a name (will be created if it doesn't exist)
   
   schema:
     description: "Schema to use for the UCX Assistant"
@@ -493,11 +492,12 @@ The assistant uses Databricks Vector Search with two specialized indexes:
 
 ### **Common Deployment Issues**
 
-1. **Vector Search Endpoint Not Found**:
+1. **Vector Search Endpoint Creation Failed**:
    ```bash
-   # Create a vector search endpoint first
+   # The endpoint should be created automatically during Step 4
+   # If creation fails, you can create one manually:
    # Via Databricks UI: Compute → Vector Search → Create Endpoint
-   # Or update databricks.yml to use an existing endpoint
+   # Then ensure databricks.yml references the correct endpoint name
    ```
 
 2. **Schema Does Not Exist**:
