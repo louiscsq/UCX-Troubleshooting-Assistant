@@ -253,8 +253,7 @@ The App Service Principal name format: `{target}-{bundle_name}` (e.g., `dev-ucx-
 databricks bundle deploy
 
 # Start the app and deploy
-databricks apps start dev-ucx-assistant
-databricks apps deploy dev-ucx-assistant --source-code-path /Workspace/Users/{username}/.bundle/ucx-assistant/{target-env}/files/webapp
+databricks bundle run dev-ucx-assistant
 ```
 
 #### **Step 9: Access Your App**
