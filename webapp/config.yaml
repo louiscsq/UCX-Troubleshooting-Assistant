@@ -3,8 +3,6 @@
 
 # Project Identity
 project_name: "UCX"
-project_full_name: "Unity Catalog Migration"
-repository: "databrickslabs/ucx"
 
 # UI Text
 ui_title: "UCX Troubleshooting Assistant"
