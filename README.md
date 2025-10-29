@@ -4,6 +4,7 @@ An intelligent AI-powered assistant for troubleshooting Unity Catalog Migration 
 
 <p align="center">
   <img src="https://github.com/databrickslabs/ucx/raw/main/docs/ucx/static/img/logo.svg" width="200" alt="UCX Logo">
+    <b>🚀 UCX - Unity Catalog Migration Assistant</b>
 </p>
 
 ## Features
