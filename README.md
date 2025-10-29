@@ -86,39 +86,58 @@ cd UCX-Troubleshooting-Assistant
 ```
 
 #### **Step 2: Configure databricks.yml**
-Edit required variables:
+Edit variables and add targets for each repository you want to support:
 ```yaml
 variables:
-  repo:
-    default: "databrickslabs/ucx"  # ⚠️ UPDATE: GitHub repo (owner/repo format)
   config_file:
-    default: "configs/ucx.config.yaml"  # Repository-specific config
+    default: "configs/ucx.config.yaml"
+  repo:
+    default: "databrickslabs/ucx"
   project_prefix:
-    default: "ucx"  # Prefix for tables/models
+    default: "ucx"
   vector_search_endpoint:
     default: "your_vector_search_endpoint"  # ⚠️ REQUIRED
   schema:
-    default: "catalog_name.schema_name"  # ⚠️ REQUIRED (format: catalog.schema)
+    default: "catalog_name.schema_name"  # ⚠️ REQUIRED
 
 targets:
-  dev:
+  # UCX Assistant
+  ucx-dev:
     workspace:
       host: https://your-workspace.cloud.databricks.com/  # ⚠️ UPDATE
+    variables:
+      repo: "databrickslabs/ucx"
+      config_file: "configs/ucx.config.yaml"
+      project_prefix: "ucx"
+    default: true
+  
+  # Add more repositories as needed
+  # myrepo-dev:
+  #   variables:
+  #     repo: "myorg/myrepo"
+  #     config_file: "configs/myrepo.config.yaml"
+  #     project_prefix: "myrepo"
 ```
 
-**Key Requirements:**
+**Key Variables:**
+- **`config_file`**: Path to config within `webapp/configs/` (for UI text, prompts)
 - **`repo`**: GitHub repository to ingest in `owner/repo` format
-- **`config_file`**: Path to config within `webapp/configs/` (customize UI text, prompts)
-- **`project_prefix`**: Prefix for resources (tables, models, endpoints)
+- **`project_prefix`**: Prefix for resources (tables, models, endpoints) - unique per repository
 - **`vector_search_endpoint`**: Must exist before deployment (create via Databricks UI: Compute → Vector Search)
 - **`schema`**: Must be in `catalog.schema` format with existing catalog and schema
 
+**Note:** Each target can have different repositories, configs, and prefixes while sharing the same codebase.
+
 #### **Step 3: Deploy Resources**
 ```bash
+# Deploy for default target (ucx-dev)
 databricks bundle deploy
+
+# Or specify target explicitly
+databricks bundle deploy -t ucx-dev
 ```
 
-Deploys two workflows (data ingestion + agent deployment) and app configuration.
+Deploys two workflows (data ingestion + agent deployment) and app configuration for the specified target.
 
 #### **Step 4: Run Data Ingestion (~20 minutes)**
 ```bash
@@ -158,22 +177,27 @@ Repository-specific configuration is in `webapp/configs/`. Edit to customize:
 Default config is at `webapp/configs/ucx.config.yaml`.
 
 #### **Step 7: Grant Permissions**
-Via Databricks UI, grant to App Service Principal (`{target}-{bundle_name}`, e.g., `dev-ucx-assistant`):
+Via Databricks UI, grant to App Service Principal (`{target}-{bundle_name}`, e.g., `ucx-dev-ucx-assistant`):
 - **Model Endpoint**: Serving → Your endpoint → Permissions → Grant "CAN QUERY"
 - **Catalog/Schema**: Catalog → Your schema → Permissions → Grant "Data Editor"
 
 #### **Step 8: Deploy and Start App**
 ```bash
+# Deploy and run for default target
 databricks bundle deploy
-databricks bundle run dev-ucx-assistant
+databricks bundle run ucx-dev-ucx-assistant
+
+# Or specify target explicitly
+databricks bundle deploy -t ucx-dev
+databricks bundle run ucx-dev-ucx-assistant -t ucx-dev
 ```
 
 Get app URL:
 ```bash
-databricks apps get dev-ucx-assistant
+databricks apps get ucx-dev-ucx-assistant
 ```
 
-Access at: `https://dev-ucx-assistant-{workspace-id}.{region}.databricksapps.com`
+Access at: `https://ucx-dev-ucx-assistant-{workspace-id}.{region}.databricksapps.com`
 
 ## Project Structure
 
@@ -210,7 +234,7 @@ The assistant includes audit logging with Delta Lake that tracks user interactio
 
 **Configuration:**
 ```yaml
-# webapp/config.yaml
+# webapp/configs/{project_prefix}.config.yaml
 deployment:
   audit_table: "catalog.schema.ucx_chat_interactions"
 ```
@@ -228,21 +252,23 @@ Deploy separate assistants for different repositories using bundle targets. All 
 
 ### **Add a New Repository**
 
-**1. Create config file:** Copy and customize `webapp/configs/ucx.config.yaml` → `webapp/configs/myrepo.config.yaml`
-```yaml
-# Customize these sections:
-project_name: "MyRepo"
-ui_title: "MyRepo Troubleshooting Assistant"
-agent:
-  system_prompt: |
-    You are a MyRepo expert assistant...
-# Plus checklists, error messages, etc.
+Follow the same Quick Deploy steps above (Steps 1-8) with these changes:
+
+**Before Step 2:** Create config file
+```bash
+cp webapp/configs/ucx.config.yaml webapp/configs/myrepo.config.yaml
+# Edit myrepo.config.yaml to customize:
+# - project_name, ui_title, ui_tagline
+# - agent system_prompt
+# - checklists and error messages
 ```
 
-**2. Add target in `databricks.yml`:**
+**In Step 2:** Add your repository target to `databricks.yml`
 ```yaml
 targets:
   myrepo-dev:
+    workspace:
+      host: https://your-workspace.cloud.databricks.com/
     variables:
       repo: "myorg/myrepo"
       config_file: "configs/myrepo.config.yaml"
@@ -250,12 +276,7 @@ targets:
       schema: "catalog.schema"
 ```
 
-**3. Deploy:**
-```bash
-databricks bundle deploy -t myrepo-dev
-databricks jobs run-now --job-name "w01_data_ingestion_and_setup" -t myrepo-dev
-databricks jobs run-now --job-name "w02_build_agent_and_deploy" -t myrepo-dev
-```
+**In Steps 3-8:** Use `-t myrepo-dev` flag for all commands
 
 ### **Benefits**
 - ✅ Single codebase for all assistants
@@ -263,8 +284,6 @@ databricks jobs run-now --job-name "w02_build_agent_and_deploy" -t myrepo-dev
 - ✅ Easy to add new repositories
 - ✅ Complete resource isolation per project
 - ✅ Customizable UI and prompts per repository
-
-For detailed implementation guide, see [MULTI_REPO_GUIDE.md](MULTI_REPO_GUIDE.md).
 
 ## Usage Examples (UCX)
 
@@ -314,7 +333,12 @@ databricks jobs run-now --job-name "w01_data_ingestion_and_setup" \
 ### **Updating the Agent**
 After modifying agent configuration or code:
 ```bash
+# For default target
 databricks jobs run-now --job-name "w02_build_agent_and_deploy"
+
+# For specific target
+databricks jobs run-now --job-name "w02_build_agent_and_deploy" -t myrepo-dev
+
 # Serving endpoint updates automatically
 ```
 
