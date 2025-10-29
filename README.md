@@ -1,6 +1,6 @@
-# UCX Troubleshooting Assistant
+# Repository Troubleshooting Assistant
 
-An intelligent AI-powered assistant for troubleshooting Unity Catalog Migration (UCX) issues. Built with Streamlit, powered by Claude Sonnet 4.5, and enhanced with vector search over the UCX codebase and documentation for context-aware assistance.
+An intelligent AI-powered assistant for troubleshooting repository-specific issues. Built with Streamlit, powered by Claude Sonnet 4.5, and enhanced with vector search over codebases and documentation. Configured by default for Unity Catalog Migration (UCX) but easily adaptable to any GitHub repository.
 
 <p align="center">
   <img src="https://github.com/databrickslabs/ucx/raw/main/docs/ucx/static/img/logo.svg" width="200" alt="UCX Logo"><br>
@@ -10,10 +10,11 @@ An intelligent AI-powered assistant for troubleshooting Unity Catalog Migration 
 ## Features
 
 ### **Intelligent AI Agent with Vector Search**
-- **Dual Vector Search Indexes**: Queries both UCX codebase and documentation for comprehensive answers
+- **Dual Vector Search Indexes**: Queries both codebase and documentation for comprehensive answers
 - **Smart Reasoning Process**: Agent explains its thinking and query strategy in real-time
 - **Source Attribution**: Provides links to relevant code and documentation
 - **Validation-First Approach**: Verifies all functionality exists in the codebase before confirming
+- **Multi-Repository Support**: Deploy separate assistants for different repositories using bundle targets
 
 ### **Knowledge Sources**
 - **Codebase Index**: Python and SQL code with AI-generated summaries of each function/class
@@ -32,10 +33,10 @@ An intelligent AI-powered assistant for troubleshooting Unity Catalog Migration 
 ## Architecture
 
 ```
-UCX Troubleshooting Assistant
+Troubleshooting Assistant
 ├── Data Ingestion Workflow (w01_data_ingestion_and_setup)
-│   ├── Ingest UCX code from GitHub with AI summaries
-│   ├── Ingest UCX documentation
+│   ├── Ingest code from GitHub with AI summaries
+│   ├── Ingest documentation
 │   └── Create vector search indexes (codebase + docs)
 │
 ├── Agent Build & Deploy Workflow (w02_build_agent_and_deploy)
@@ -46,13 +47,14 @@ UCX Troubleshooting Assistant
     ├── Chat interface (app.py)
     ├── Delta Lake audit system (audit_utils.py)
     └── Admin dashboard (audit_dashboard.py)
+    └── Repository-specific configs (webapp/configs/)
 ```
 
 ### **Key Components:**
 
 **Data Ingestion (`01_data_ingestion_and_setup/`):**
-- Downloads UCX Python/SQL code from GitHub and generates AI summaries
-- Ingests UCX documentation and README files
+- Downloads Python/SQL code from GitHub and generates AI summaries
+- Ingests documentation and README files
 - Creates Delta-synced vector search indexes for both sources
 
 **Agent Deployment (`02_build_agent_and_deploy/`):**
@@ -63,7 +65,7 @@ UCX Troubleshooting Assistant
 - Streamlit chat interface with audit integration
 - Delta Lake audit logging with privacy management
 - Interactive dashboard for analytics and reporting
-- All configuration managed via `config.yaml`
+- Repository-specific configs in `webapp/configs/` (UI text, prompts, etc.)
 
 ## Installation & Deployment
 
@@ -88,11 +90,13 @@ Edit required variables:
 ```yaml
 variables:
   repo:
-    default: "databrickslabs/ucx"  # ⚠️ UPDATE: GitHub repo to ingest (owner/repo format)
-  
+    default: "databrickslabs/ucx"  # ⚠️ UPDATE: GitHub repo (owner/repo format)
+  config_file:
+    default: "configs/ucx.config.yaml"  # Repository-specific config
+  project_prefix:
+    default: "ucx"  # Prefix for tables/models
   vector_search_endpoint:
     default: "your_vector_search_endpoint"  # ⚠️ REQUIRED
-  
   schema:
     default: "catalog_name.schema_name"  # ⚠️ REQUIRED (format: catalog.schema)
 
@@ -103,10 +107,11 @@ targets:
 ```
 
 **Key Requirements:**
-- **`repo`**: GitHub repository to ingest in `owner/repo` format (default: `databrickslabs/ucx`)
+- **`repo`**: GitHub repository to ingest in `owner/repo` format
+- **`config_file`**: Path to config within `webapp/configs/` (customize UI text, prompts)
+- **`project_prefix`**: Prefix for resources (tables, models, endpoints)
 - **`vector_search_endpoint`**: Must exist before deployment (create via Databricks UI: Compute → Vector Search)
 - **`schema`**: Must be in `catalog.schema` format with existing catalog and schema
-- Optional variables (audit_table, table_codebase, etc.) can use default values
 
 #### **Step 3: Deploy Resources**
 ```bash
@@ -126,32 +131,31 @@ databricks jobs run-now --job-name "w01_data_ingestion_and_setup"
 ```
 
 **What it does:**
-1. Downloads UCX Python/SQL code from GitHub
+1. Downloads Python/SQL code from configured GitHub repository
 2. Generates AI summaries using Claude Sonnet 4.5
-3. Downloads UCX documentation
-4. Creates vector indexes: `{schema}.ucx_codebase_vector` and `{schema}.ucx_documentation_vector`
+3. Downloads documentation
+4. Creates vector indexes: `{schema}.{project_prefix}_codebase_vector` and `{schema}.{project_prefix}_documentation_vector`
 
 #### **Step 5: Deploy Agent (~5-10 minutes)**
 ```bash
 databricks jobs run-now --job-name "w02_build_agent_and_deploy"
 ```
 
-Creates MLflow agent with vector search tools and deploys to model serving endpoint: `agents_{schema}-ucx_agent`
+Creates MLflow agent with vector search tools and deploys to model serving endpoint: `agents_{schema}-{project_prefix}_agent`
 
 Wait for endpoint to be ready:
 ```bash
-databricks serving-endpoints get --name "agents_{schema}-ucx_agent"
+databricks serving-endpoints get --name "agents_{schema}-{project_prefix}_agent"
 ```
 
-#### **Step 6: Configure webapp/config.yaml**
-```yaml
-deployment:
-  serving_endpoint: "agents_main-default-ucx_agent"  # ⚠️ UPDATE with your endpoint name
-  audit_table: "catalog.schema.ucx_chat_interactions"  # ⚠️ UPDATE with your table path
-  audit_debug: false
-```
+#### **Step 6: Customize webapp/configs/{project_prefix}.config.yaml** (Optional)
+Repository-specific configuration is in `webapp/configs/`. Edit to customize:
+- UI text and branding
+- Agent system prompt
+- Tool descriptions
+- Checklists and error messages
 
-**Note:** The `config.yaml` file can be used to customize text and settings related to your repository. For example, you can edit the agent's prompt, system messages, and other repository-specific configurations to tailor the assistant's behavior to your needs.
+Default config is at `webapp/configs/ucx.config.yaml`.
 
 #### **Step 7: Grant Permissions**
 Via Databricks UI, grant to App Service Principal (`{target}-{bundle_name}`, e.g., `dev-ucx-assistant`):
@@ -191,7 +195,8 @@ UCX-Troubleshooting-Assistant/
 │
 ├── webapp/                            # Streamlit application
 │   ├── app.py                         # Main chat interface
-│   ├── config.yaml                    # Application configuration
+│   ├── configs/                       # Repository-specific configurations
+│   │   └── ucx.config.yaml           # UCX config (UI, prompts, etc.)
 │   ├── audit_*.py                     # Audit system modules
 │   ├── model_serving_utils.py         # Model serving interface
 │   └── requirements.txt
@@ -212,15 +217,62 @@ deployment:
 
 **Audit Dashboard:** Access at `https://your-app-url.databricksapps.com?admin=dashboard` for analytics, exports, and custom SQL queries.
 
-## Usage Examples
+## Multi-Repository Support
+
+Deploy separate assistants for different repositories using bundle targets. All assistants share the same codebase, so bug fixes and features apply to all.
+
+### **How It Works**
+- **Shared Code**: All Python code is shared across assistants
+- **Separate Resources**: Each assistant gets its own vector indexes, models, endpoints, and audit tables
+- **Custom Configuration**: Each repository has its own config file in `webapp/configs/` for UI text, prompts, checklists
+
+### **Add a New Repository**
+
+**1. Create config file:** Copy and customize `webapp/configs/ucx.config.yaml` → `webapp/configs/myrepo.config.yaml`
+```yaml
+# Customize these sections:
+project_name: "MyRepo"
+ui_title: "MyRepo Troubleshooting Assistant"
+agent:
+  system_prompt: |
+    You are a MyRepo expert assistant...
+# Plus checklists, error messages, etc.
+```
+
+**2. Add target in `databricks.yml`:**
+```yaml
+targets:
+  myrepo-dev:
+    variables:
+      repo: "myorg/myrepo"
+      config_file: "configs/myrepo.config.yaml"
+      project_prefix: "myrepo"
+      schema: "catalog.schema"
+```
+
+**3. Deploy:**
+```bash
+databricks bundle deploy -t myrepo-dev
+databricks jobs run-now --job-name "w01_data_ingestion_and_setup" -t myrepo-dev
+databricks jobs run-now --job-name "w02_build_agent_and_deploy" -t myrepo-dev
+```
+
+### **Benefits**
+- ✅ Single codebase for all assistants
+- ✅ Bug fixes automatically apply everywhere
+- ✅ Easy to add new repositories
+- ✅ Complete resource isolation per project
+- ✅ Customizable UI and prompts per repository
+
+For detailed implementation guide, see [MULTI_REPO_GUIDE.md](MULTI_REPO_GUIDE.md).
+
+## Usage Examples (UCX)
 
 ### **Common Questions**
 - "I'm getting permission errors during UCX installation"
 - "How do I run UCX assessment?"
-- "Assessment job fails to start"
 - "How do I migrate external tables?"
 - "What's the difference between SYNC and MOVE migration?"
-- "Unity Catalog migration not working"
 
 ## Troubleshooting
 
@@ -247,11 +299,15 @@ deployment:
 - Via: Catalog → Your schema → Permissions
 
 ### **Refreshing Knowledge Base**
-Update with latest UCX code/docs:
+Update with latest code/docs:
 ```bash
 databricks jobs run-now --job-name "w01_data_ingestion_and_setup" \
   --param github_token="your_token"
 # Agent automatically uses updated indexes, no rebuild needed
+
+# For specific target:
+databricks jobs run-now --job-name "w01_data_ingestion_and_setup" \
+  -t myrepo-dev --param github_token="your_token"
 ```
 ## Development
 

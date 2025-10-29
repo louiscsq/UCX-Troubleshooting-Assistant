@@ -6,6 +6,8 @@ resources:
         enabled: true
 
       parameters:
+        - name: "config_file"
+          default: "${var.config_file}"
         - name: "uc_agent_model"
           default: "${var.uc_agent_model}"
         - name: "table_documentation"

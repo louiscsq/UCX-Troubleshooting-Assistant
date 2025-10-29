@@ -9,7 +9,8 @@ import yaml
 from typing import Dict, Any
 
 # Load main config.yaml
-config_path = "config.yaml"
+config_file = os.getenv('CONFIG_FILE', 'configs/ucx.config.yaml')
+config_path = os.path.join(os.path.dirname(__file__), config_file)
 try:
     with open(config_path, 'r') as f:
         MAIN_CONFIG = yaml.safe_load(f)

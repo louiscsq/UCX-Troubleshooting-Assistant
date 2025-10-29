@@ -6,6 +6,9 @@ include:
   - resources/*/*.yml
 
 variables:
+  config_file:
+    description: "Path to config file within webapp/"
+    default: "configs/ucx.config.yaml"
   repo:
     description: "GitHub Repo to use as data source"
     default: "databrickslabs/ucx"
@@ -13,24 +16,27 @@ variables:
     description: "Vector Search Endpoint to use for vector search"
     default: "btafur_vector_search"
   schema:
-    description: "Schema to use for the UCX Assistant"
+    description: "Schema to use for the Assistant"
     default: "testcatalogv2.default"
+  project_prefix:
+    description: "Prefix for resources (ucx, lakebridge, etc.)"
+    default: "ucx"
   #Only update below if you want to change specific table names.
   summarising_endpoint:
     description: "Foundational LLM endpoint to use for summarising the codebase"
     default: "databricks-claude-sonnet-4-5"
   audit_table:
     description: "Table name for chat interactions logs in catalog.schema.table format"
-    default: "${var.schema}.ucx_chat_interactions"
+    default: "${var.schema}.${var.project_prefix}_chat_interactions"
   table_codebase:
     description: "Table to save codebase information and generate vector store in catalog.schema.table format"
-    default: "${var.schema}.ucx_codebase"
+    default: "${var.schema}.${var.project_prefix}_codebase"
   table_documentation:
     description: "Table to save documentation information and generate vector store in catalog.schema.table format"
-    default: "${var.schema}.ucx_documentation"
+    default: "${var.schema}.${var.project_prefix}_documentation"
   uc_agent_model:
     description: "Model location in Unity Catalog in catalog.schema.table format"
-    default: "${var.schema}.ucx_agent"
+    default: "${var.schema}.${var.project_prefix}_agent"
 
 targets:
   dev:

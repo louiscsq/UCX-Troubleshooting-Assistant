@@ -20,7 +20,8 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Load configuration
-config_path = "config.yaml"
+config_file = os.getenv('CONFIG_FILE', 'configs/ucx.config.yaml')
+config_path = os.path.join(os.path.dirname(__file__), config_file)
 with open(config_path, 'r') as f:
     CONFIG = yaml.safe_load(f)
 

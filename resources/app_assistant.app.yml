@@ -4,3 +4,7 @@ resources:
       name: ${bundle.target}-${bundle.name}
       description: "Troubleshooting Assistant"
       source_code_path: ../webapp
+      config:
+        env:
+          - name: CONFIG_FILE
+            value: ${var.config_file}

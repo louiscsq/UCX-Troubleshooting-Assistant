@@ -6,6 +6,8 @@ resources:
         enabled: true
 
       parameters:
+        - name: "config_file"
+          default: "${var.config_file}"
         - name: "repo"
           default: "${var.repo}"
         - name: "summarising_endpoint"

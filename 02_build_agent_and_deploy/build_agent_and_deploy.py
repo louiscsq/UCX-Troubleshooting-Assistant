@@ -22,8 +22,11 @@ table_documentation = dbutils.widgets.get("table_documentation")
 dbutils.widgets.text("table_codebase", "", "")
 table_codebase = dbutils.widgets.get("table_codebase")
 
+dbutils.widgets.text("config_file", "configs/ucx.config.yaml", "")
+config_file = dbutils.widgets.get("config_file")
+
 # Load the main configuration file
-config_path = "../webapp/config.yaml"
+config_path = f"../webapp/{config_file}"
 with open(config_path, "r") as f:
     main_config = yaml.safe_load(f)
 
