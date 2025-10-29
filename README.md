@@ -1,35 +1,32 @@
-# 🔧 UCX Troubleshooting Assistant
+# UCX Troubleshooting Assistant
 
 An intelligent AI-powered assistant for troubleshooting Unity Catalog Migration (UCX) issues. Built with Streamlit, powered by Claude Sonnet 4.5, and enhanced with vector search over the UCX codebase and documentation for context-aware assistance.
 
-![UCX Logo](https://github.com/databrickslabs/ucx/raw/main/docs/ucx/static/img/ucx.png)
+![UCX Logo](https://github.com/databrickslabs/ucx/raw/main/docs/ucx/static/img/logo.svg)
 
-## 🚀 Features
+## Features
 
-### **🎯 Intelligent AI Agent with Vector Search**
+### **Intelligent AI Agent with Vector Search**
 - **Dual Vector Search Indexes**: Queries both UCX codebase and documentation for comprehensive answers
 - **Smart Reasoning Process**: Agent explains its thinking and query strategy in real-time
 - **Source Attribution**: Provides links to relevant code and documentation
 - **Validation-First Approach**: Verifies all functionality exists in the codebase before confirming
 
-### **📚 Knowledge Sources**
+### **Knowledge Sources**
 - **Codebase Index**: Python and SQL code with AI-generated summaries of each function/class
 - **Documentation Index**: Chunked README files, user guides, and troubleshooting guides
 - **Real-time Updates**: Knowledge base can be refreshed by re-running ingestion workflows
 
-### **🤖 Advanced AI Capabilities**
+### **Advanced AI Capabilities**
 - **Claude Sonnet 4.5**: State-of-the-art reasoning and code analysis powering all agent interactions
 - **Agentic Framework**: Built using MLflow's ResponsesAgent for robust tool calling
 - **Interactive Chat Interface**: Natural language troubleshooting with transparent thinking
 
-### **📊 Audit Logging with Delta Lake**
-- **Delta Table Storage**: ACID-compliant audit trails in Unity Catalog
-- **User Tracking**: Identifies users via Databricks authentication
-- **Privacy Compliance**: Automatic redaction of sensitive information (tokens, keys, passwords)
-- **Audit Dashboard**: Real-time analytics with interactive charts, SQL queries, and export capabilities
-- **Time Travel**: Query historical versions using Delta Lake features
+### **Audit Logging with Delta Lake**
+- **User Tracking**: Identifies users that interact with the assistant
+- **Audit Dashboard**: Real-time analytics for user interactions
 
-## 🏗️ Architecture
+## Architecture
 
 ```
 UCX Troubleshooting Assistant
@@ -65,7 +62,7 @@ UCX Troubleshooting Assistant
 - Interactive dashboard for analytics and reporting
 - All configuration managed via `config.yaml`
 
-## 📦 Installation & Deployment
+## Installation & Deployment
 
 ### **Prerequisites**
 - Databricks workspace with Unity Catalog enabled
@@ -169,7 +166,7 @@ databricks apps get dev-ucx-assistant
 
 Access at: `https://dev-ucx-assistant-{workspace-id}.{region}.databricksapps.com`
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 UCX-Troubleshooting-Assistant/
@@ -197,7 +194,7 @@ UCX-Troubleshooting-Assistant/
 └── databricks.yml                     # Bundle configuration
 ```
 
-## 📊 Audit & Compliance
+## Audit & Compliance
 
 The assistant includes audit logging with Delta Lake that tracks user interactions, questions, responses, and response times. All data is stored in Unity Catalog with automatic privacy protection.
 
@@ -210,7 +207,7 @@ deployment:
 
 **Audit Dashboard:** Access at `https://your-app-url.databricksapps.com?admin=dashboard` for analytics, exports, and custom SQL queries.
 
-## 🎯 Usage Examples
+## Usage Examples
 
 ### **Common Questions**
 - "I'm getting permission errors during UCX installation"
@@ -220,44 +217,7 @@ deployment:
 - "What's the difference between SYNC and MOVE migration?"
 - "Unity Catalog migration not working"
 
-### **Interactive Features**
-- 💬 Natural language chat interface with the AI agent
-- 🔍 Source links to relevant code and documentation
-- 🧠 Transparent thinking process showing agent reasoning
-- 📚 View sources used for each answer
-
-## 🔍 Technical Details
-
-### **Vector Search Indexes**
-Two specialized indexes powered by Databricks Vector Search:
-
-**Codebase Index** (`{schema}.ucx_codebase_vector`):
-- Python and SQL code with AI-generated summaries (Claude Sonnet 4.5)
-- Embeddings: `databricks-gte-large-en`
-- Use case: Implementation details, feature validation
-
-**Documentation Index** (`{schema}.ucx_documentation_vector`):
-- README files, user guides, and troubleshooting docs
-- Chunked for optimal retrieval
-- Use case: User-facing features, CLI commands, workflows
-
-### **AI Agent Architecture**
-- **Framework**: MLflow ResponsesAgent
-- **LLM**: Claude Sonnet 4.5 via Model Serving
-- **Tools**: `docs_retriever` (10 results), `codebase_retriever` (8 results)
-- **Strategy**: Multi-query iterative retrieval with reasoning (max 20 iterations)
-
-### **Foundation Models**
-- **LLM**: Claude Sonnet 4.5 (`databricks-claude-sonnet-4-5`)
-- **Embeddings**: Databricks GTE Large (`databricks-gte-large-en`)
-
-### **Data Pipeline**
-1. Code ingestion via Sourcegraph (Python) and GitHub API (SQL)
-2. AI summarization using Claude Sonnet 4.5
-3. Documentation download and chunking
-4. Delta-synced vector index creation with automatic updates
-
-## 🚨 Troubleshooting
+## Troubleshooting
 
 ### **Common Issues**
 
@@ -288,16 +248,7 @@ databricks jobs run-now --job-name "w01_data_ingestion_and_setup" \
   --param github_token="your_token"
 # Agent automatically uses updated indexes, no rebuild needed
 ```
-
-### **Check Vector Search Status**
-```python
-from databricks.vector_search.client import VectorSearchClient
-vsc = VectorSearchClient()
-print(vsc.get_index("{schema}.ucx_codebase_vector").describe())
-print(vsc.get_index("{schema}.ucx_documentation_vector").describe())
-```
-
-## 🔧 Development
+## Development
 
 ### **Updating the Agent**
 After modifying agent configuration or code:
@@ -306,7 +257,7 @@ databricks jobs run-now --job-name "w02_build_agent_and_deploy"
 # Serving endpoint updates automatically
 ```
 
-## 🔗 Related Links
+## Related Links
 
 - [UCX Repository](https://github.com/databrickslabs/ucx)
 - [UCX Documentation](https://databrickslabs.github.io/ucx/)
@@ -317,4 +268,4 @@ databricks jobs run-now --job-name "w02_build_agent_and_deploy"
 
 ---
 
-**Need help?** Use the app itself to troubleshoot Unity Catalog Migration issues! 🎯
+**Need help?** Use the app itself to troubleshoot Unity Catalog Migration issues!
