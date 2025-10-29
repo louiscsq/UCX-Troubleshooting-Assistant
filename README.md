@@ -1,6 +1,6 @@
 # 🔧 UCX Troubleshooting Assistant
 
-An intelligent AI-powered assistant for troubleshooting Unity Catalog Migration (UCX) issues. Built with Streamlit, powered by Claude Sonnet 4, and enhanced with vector search over the UCX codebase and documentation for context-aware assistance.
+An intelligent AI-powered assistant for troubleshooting Unity Catalog Migration (UCX) issues. Built with Streamlit, powered by Claude Sonnet 4.5, and enhanced with vector search over the UCX codebase and documentation for context-aware assistance.
 
 ![UCX Logo](https://github.com/databrickslabs/ucx/raw/main/docs/ucx/static/img/ucx.png)
 
@@ -18,8 +18,7 @@ An intelligent AI-powered assistant for troubleshooting Unity Catalog Migration 
 - **Real-time Updates**: Knowledge base can be refreshed by re-running ingestion workflows
 
 ### **🤖 Advanced AI Capabilities**
-- **Claude Sonnet 4.5**: State-of-the-art reasoning and code analysis for summarization
-- **Claude Sonnet 4**: Powers the agent for troubleshooting interactions
+- **Claude Sonnet 4.5**: State-of-the-art reasoning and code analysis powering all agent interactions
 - **Agentic Framework**: Built using MLflow's ResponsesAgent for robust tool calling
 - **Interactive Chat Interface**: Natural language troubleshooting with transparent thinking
 
@@ -72,7 +71,7 @@ UCX Troubleshooting Assistant
 - Databricks workspace with Unity Catalog enabled
 - Databricks CLI v0.218+ installed and configured
 - Workspace administrator privileges
-- Access to Claude Sonnet 4.5 and Claude Sonnet 4 foundation models
+- Access to Claude Sonnet 4.5 foundation model
 - Unity Catalog schema with write permissions
 - (Optional) GitHub personal access token to avoid API rate limits
 
@@ -284,13 +283,12 @@ Two specialized indexes powered by Databricks Vector Search:
 
 ### **AI Agent Architecture**
 - **Framework**: MLflow ResponsesAgent
-- **LLM**: Claude Sonnet 4 via Model Serving
+- **LLM**: Claude Sonnet 4.5 via Model Serving
 - **Tools**: `docs_retriever` (10 results), `codebase_retriever` (8 results)
 - **Strategy**: Multi-query iterative retrieval with reasoning (max 20 iterations)
 
 ### **Foundation Models**
-- **Summarization**: Claude Sonnet 4.5 (`databricks-claude-sonnet-4-5`)
-- **Agent**: Claude Sonnet 4 (`databricks-claude-sonnet-4`)
+- **LLM**: Claude Sonnet 4.5 (`databricks-claude-sonnet-4-5`)
 - **Embeddings**: Databricks GTE Large (`databricks-gte-large-en`)
 
 ### **Data Pipeline**

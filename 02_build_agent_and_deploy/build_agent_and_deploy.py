@@ -30,7 +30,7 @@ with open(config_path, "r") as f:
 # Write agent configuration (system prompt, tool descriptions, LLM endpoint, vector search indexes)
 # This works in serverless clusters where environment variables don't persist
 agent_config = {
-    "llm_endpoint": main_config.get("agent", {}).get("llm_endpoint", "databricks-claude-sonnet-4"),
+    "llm_endpoint": main_config.get("agent", {}).get("llm_endpoint", "databricks-claude-sonnet-4-5"),
     "system_prompt": main_config.get("agent", {}).get("system_prompt", ""),
     "tools": main_config.get("agent", {}).get("tools", {}),
     "vector_search": {}

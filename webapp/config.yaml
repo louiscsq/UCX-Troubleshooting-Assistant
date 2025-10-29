@@ -84,7 +84,7 @@ errors:
 
 # Agent Configuration
 agent:
-  llm_endpoint: "databricks-claude-sonnet-4"
+  llm_endpoint: "databricks-claude-sonnet-4-5"
   
   system_prompt: |
     You are a UCX (Databricks Unity Catalog Migration Assistant) expert assistant with access to the UCX codebase and documentation. UCX is a framework that automates migration processes including assessment, group migration, table migration, and code migration steps.

@@ -28,7 +28,7 @@ from unitycatalog.ai.core.base import get_uc_function_client
 def load_agent_config():
     """Load agent configuration (system prompt, LLM endpoint, tool descriptions, vector search) from file or use defaults."""
     default_config = {
-        "llm_endpoint": "databricks-claude-sonnet-4",
+        "llm_endpoint": "databricks-claude-sonnet-4-5",
         "system_prompt": """You are a troubleshooting assistant with access to a codebase and documentation. 
 Help users understand the codebase, diagnose issues, and find solutions.""",
         "tools": {
