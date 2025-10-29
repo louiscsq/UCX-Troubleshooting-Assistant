@@ -6,7 +6,13 @@ By keeping them in a separate module, they remain stable across
 Streamlit app reruns, avoiding isinstance comparison issues.
 """
 import streamlit as st
+import yaml
 from abc import ABC, abstractmethod
+
+# Load configuration
+config_path = "config.yaml"
+with open(config_path, 'r') as f:
+    CONFIG = yaml.safe_load(f)
 
 
 class Message(ABC):
@@ -175,14 +181,14 @@ class AssistantResponse(Message):
                 
                 with col1:
                     word_count = len(self.final_content.split()) if self.final_content else 0
-                    st.markdown(f"**💾 Download available** • {word_count} words • Ready for customer documentation")
+                    st.markdown(f"**💾 Download available** • {word_count} words • {CONFIG['pdf_download_label']}")
                 
                 with col2:
                     # Small icon-sized download button that persists
                     st.download_button(
                         label="📄",
                         data=self.pdf_data,
-                        file_name=f"UCX_Response_{time.strftime('%Y%m%d_%H%M%S')}.pdf",
+                        file_name=f"{CONFIG['pdf_filename_prefix']}_{time.strftime('%Y%m%d_%H%M%S')}.pdf",
                         mime="application/pdf",
                         help="Download PDF report",
                         key=f"pdf_download_{idx}_{abs(hash(self.final_content))}",

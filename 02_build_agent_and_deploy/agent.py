@@ -22,38 +22,67 @@ from pydantic import BaseModel
 from unitycatalog.ai.core.base import get_uc_function_client
 
 ############################################
-# Define your system prompt
+# Load agent configuration
 ############################################
 
-LLM_ENDPOINT_NAME = "databricks-claude-sonnet-4"
+def load_agent_config():
+    """Load agent configuration (system prompt, LLM endpoint, tool descriptions, vector search) from file or use defaults."""
+    default_config = {
+        "llm_endpoint": "databricks-claude-sonnet-4-5",
+        "system_prompt": """You are a troubleshooting assistant with access to a codebase and documentation. 
+Help users understand the codebase, diagnose issues, and find solutions.""",
+        "tools": {
+            "docs_retriever": {
+                "name": "docs_retriever",
+                "description": "Retrieves documentation including user guides and feature explanations.",
+                "num_results": 10
+            },
+            "codebase_retriever": {
+                "name": "codebase_retriever",
+                "description": "Retrieves source code including function definitions, classes, and implementation details.",
+                "num_results": 8
+            }
+        },
+        "vector_search": {
+            "documentation_index": "main.default.assistant_documentation_vector",
+            "codebase_index": "main.default.assistant_codebase_vector"
+        }
+    }
+    
+    # Check multiple locations for the config file:
+    # 1. Current directory (for local development/testing)
+    # 2. artifacts/ subdirectory (where MLflow places logged artifacts relative to agent.py)
+    # 3. /model/artifacts/ (absolute path in model serving environment)
+    possible_paths = [
+        Path("agent_config.json"),
+        Path("artifacts/agent_config.json"),
+        Path("/model/artifacts/agent_config.json"),
+    ]
+    
+    for config_file in possible_paths:
+        if config_file.exists():
+            try:
+                with open(config_file, "r") as f:
+                    config = json.load(f)
+                    print(f"Loaded agent config from: {config_file}")
+                    return {
+                        "llm_endpoint": config.get("llm_endpoint", default_config["llm_endpoint"]),
+                        "system_prompt": config.get("system_prompt", default_config["system_prompt"]),
+                        "tools": config.get("tools", default_config["tools"]),
+                        "vector_search": config.get("vector_search", default_config["vector_search"])
+                    }
+            except Exception as e:
+                print(f"Warning: Failed to load agent config from {config_file}: {e}")
+                continue
+    
+    print(f"No agent config file found in any expected location. Using defaults.")
+    return default_config
 
-SYSTEM_PROMPT = """
-You are a UCX (Databricks Unity Catalog Migration Assistant) expert assistant with access to the UCX codebase and documentation. UCX is a framework that automates migration processes including assessment, group migration, table migration, and code migration steps.
-
-RESPONSE GUIDELINES:
-- Be concise and direct unless the user requests details or clarification is essential. Do not overexplain or make assumptions. Aim for at maximum 200 words in the final answer (unless absolutely necessary). Do not repeat yourself. Do not add tables, matrices, warnings, best practices, summaries unless explicitly asked for.
-- Verify all functionality and commands exist in the codebase/documentation before confirming them
-- If information is unavailable or uncertain, clearly state that you don't have enough information to answer this.
-
-REASONING PROCESS:
-- Before calling any tool, explain what information you're looking for and why
-- After receiving tool results, analyze what you learned and determine if you need more information
-- If you need to call multiple tools, explain your strategy first
-- Synthesize information from multiple sources before providing your final answer
-
-CRITICAL CONSIDERATIONS:
-- Cloud platform differences: Azure and AWS have fuller support; GCP functionality is significantly more limited
-- Managed vs. External: Be careful between these types of tables. Also be careful with table formats. For example: External Delta table might not have the same migration pattern as an external Parquet table.
-- Do not get confused between different ACL types: Databricks Workspace ACLs, Unity Catalog ACLs, and cloud provider ACLs
-- Out-of-the-box usage: UCX is designed for use without code modifications. Users will call the UCX CLI or trigger Databricks Workflows. They cannot interact with specific python functions that are inside the library.
-- If a feature doesn't exist but could be easily implemented, suggest the user request it from the UCX development team rather than implementing it themselves
-
-VALIDATION RULES:
-- Never say a feature exists based solely on user questions. Validate with the codebase and documentation
-- Never say a command exists without verification. Validate with the codebase and documentation
-- Only say something is possible after validating with the codebase and documentation
-- Only provide solutions that are confirmed to work in the codebase and documentation
-"""
+agent_config = load_agent_config()
+LLM_ENDPOINT_NAME = agent_config["llm_endpoint"]
+SYSTEM_PROMPT = agent_config["system_prompt"]
+TOOL_CONFIG = agent_config["tools"]
+VECTOR_SEARCH_CONFIG = agent_config["vector_search"]
 
 class ToolInfo(BaseModel):
     """
@@ -112,62 +141,29 @@ for tool_spec in uc_toolkit.tools:
 # List to store vector search tool instances for unstructured retrieval.
 VECTOR_SEARCH_TOOLS = []
 
-# Load vector search configuration from file if it exists (for serverless compatibility)
-# Otherwise fall back to defaults
-def load_vector_search_config():
-    """Load vector search index configuration from file or use defaults."""
-    default_config = {
-        "documentation_index": "btafur_catalog.default.ucx_documentation_vector",
-        "codebase_index": "btafur_catalog.default.ucx_codebase_vector"
-    }
-    
-    # Check multiple locations for the config file:
-    # 1. Current directory (for local development/testing)
-    # 2. artifacts/ subdirectory (where MLflow places logged artifacts relative to agent.py)
-    # 3. /model/artifacts/ (absolute path in model serving environment)
-    possible_paths = [
-        Path("vector_search_config.json"),
-        Path("artifacts/vector_search_config.json"),
-        Path("/model/artifacts/vector_search_config.json"),
-    ]
-    
-    for config_file in possible_paths:
-        if config_file.exists():
-            try:
-                with open(config_file, "r") as f:
-                    config = json.load(f)
-                    print(f"Loaded vector search config from: {config_file}")
-                    return {
-                        "documentation_index": config.get("documentation_index", default_config["documentation_index"]),
-                        "codebase_index": config.get("codebase_index", default_config["codebase_index"])
-                    }
-            except Exception as e:
-                print(f"Warning: Failed to load vector search config from {config_file}: {e}")
-                continue
-    
-    print(f"No vector search config file found in any expected location. Using defaults: {default_config}")
-    return default_config
+# Vector search indexes are now loaded from the agent config
+DOCUMENTATION_INDEX = VECTOR_SEARCH_CONFIG.get("documentation_index", "main.default.assistant_documentation_vector")
+CODEBASE_INDEX = VECTOR_SEARCH_CONFIG.get("codebase_index", "main.default.assistant_codebase_vector")
 
-vector_config = load_vector_search_config()
-DOCUMENTATION_INDEX = vector_config["documentation_index"]
-CODEBASE_INDEX = vector_config["codebase_index"]
-
+docs_tool_config = TOOL_CONFIG.get("docs_retriever", {})
 VECTOR_SEARCH_TOOLS.append(
   VectorSearchRetrieverTool(
     index_name=DOCUMENTATION_INDEX,
-    tool_name="docs_retriever",
+    tool_name=docs_tool_config.get("name", "docs_retriever"),
     doc_uri="file_url",
-    tool_description="Retrieves UCX documentation including user guides, CLI commands, workflow descriptions, and feature explanations. Use this for understanding user-facing functionality and usage patterns. But always confirm with the codebase",
-    num_results=10
+    tool_description=docs_tool_config.get("description", "Retrieves documentation"),
+    num_results=docs_tool_config.get("num_results", 10)
   )
 )
+
+codebase_tool_config = TOOL_CONFIG.get("codebase_retriever", {})
 VECTOR_SEARCH_TOOLS.append(
   VectorSearchRetrieverTool(
     index_name=CODEBASE_INDEX,
-    tool_name="codebase_retriever",
+    tool_name=codebase_tool_config.get("name", "codebase_retriever"),
     doc_uri="file_url",
-    tool_description="Retrieves UCX source code including Python/SQL function definitions, classes, and implementation details. Use this to verify implementation details, validate that features exist, or understand technical internals. Always cross-reference with documentation to confirm user-facing availability.",
-    num_results=8
+    tool_description=codebase_tool_config.get("description", "Retrieves source code"),
+    num_results=codebase_tool_config.get("num_results", 8)
   )
 )
 

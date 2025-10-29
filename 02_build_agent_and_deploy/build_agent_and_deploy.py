@@ -4,13 +4,14 @@
 
 # COMMAND ----------
 
-# MAGIC %pip install -U -qqqq backoff databricks-openai uv databricks-agents mlflow-skinny[databricks]
+# MAGIC %pip install -U -qqqq backoff databricks-openai uv databricks-agents mlflow-skinny[databricks] PyYAML
 # MAGIC dbutils.library.restartPython()
 
 # COMMAND ----------
 
 import os
 import json
+import yaml
 
 dbutils.widgets.text("uc_agent_model", "", "")
 uc_agent_model = dbutils.widgets.get("uc_agent_model")
@@ -21,17 +22,28 @@ table_documentation = dbutils.widgets.get("table_documentation")
 dbutils.widgets.text("table_codebase", "", "")
 table_codebase = dbutils.widgets.get("table_codebase")
 
-# Write vector search configuration for the agent to use
-# This works in serverless clusters where environment variables don't persist
-config = {}
-if table_documentation:
-    config["documentation_index"] = f"{table_documentation}_vector"
-if table_codebase:
-    config["codebase_index"] = f"{table_codebase}_vector"
+# Load the main configuration file
+config_path = "../webapp/config.yaml"
+with open(config_path, "r") as f:
+    main_config = yaml.safe_load(f)
 
-if config:
-    with open("vector_search_config.json", "w") as f:
-        json.dump(config, f)
+# Write agent configuration (system prompt, tool descriptions, LLM endpoint, vector search indexes)
+# This works in serverless clusters where environment variables don't persist
+agent_config = {
+    "llm_endpoint": main_config.get("agent", {}).get("llm_endpoint", "databricks-claude-sonnet-4-5"),
+    "system_prompt": main_config.get("agent", {}).get("system_prompt", ""),
+    "tools": main_config.get("agent", {}).get("tools", {}),
+    "vector_search": {}
+}
+
+# Add vector search indexes if provided
+if table_documentation:
+    agent_config["vector_search"]["documentation_index"] = f"{table_documentation}_vector"
+if table_codebase:
+    agent_config["vector_search"]["codebase_index"] = f"{table_codebase}_vector"
+
+with open("agent_config.json", "w") as f:
+    json.dump(agent_config, f)
 
 # COMMAND ----------
 
@@ -87,6 +99,11 @@ for tool_name in UC_TOOL_NAMES:
     resources.append(DatabricksFunction(function_name=tool_name))
 
 with mlflow.start_run():
+    # Log agent configuration as artifact
+    artifacts_dict = {}
+    if os.path.exists("agent_config.json"):
+        artifacts_dict["agent_config.json"] = "agent_config.json"
+    
     logged_agent_info = mlflow.pyfunc.log_model(
         name="agent",
         python_model="agent.py",
@@ -96,7 +113,7 @@ with mlflow.start_run():
             f"databricks-connect=={get_distribution('databricks-connect').version}",
         ],
         resources=resources,
-        artifacts={"vector_search_config.json": "vector_search_config.json"} if os.path.exists("vector_search_config.json") else None,
+        artifacts=artifacts_dict if artifacts_dict else None,
     )
 
 # COMMAND ----------
@@ -115,12 +132,8 @@ with mlflow.start_run():
 import mlflow
 from mlflow.genai.scorers import RelevanceToQuery, RetrievalGroundedness, RetrievalRelevance, Safety
 
-eval_dataset = [
-    {
-        "inputs": {"input": [{"role": "user", "content": "Can ucx migrate tables from external to managed?"}]},
-        "expected_response": "UCX cannot migrate from external DELTA tabls to managed. It has other different strategies. External DELTA tables are migrated from external to external.",
-    }
-]
+# Load eval dataset from config
+eval_dataset = main_config.get("evaluation", {}).get("dataset", [])
 
 eval_results = mlflow.genai.evaluate(
     data=eval_dataset,

@@ -14,7 +14,7 @@ variables:
     default: "btafur_vector_search"
   schema:
     description: "Schema to use for the UCX Assistant"
-    default: "btafur.default"
+    default: "testcatalogv2.default"
   #Only update below if you want to change specific table names.
   summarising_endpoint:
     description: "Foundational LLM endpoint to use for summarising the codebase"
@@ -35,11 +35,11 @@ variables:
 targets:
   dev:
     workspace:
-      host: https://adb-984752964297111.11.azuredatabricks.net/
+      host: https://adb-3409616956509341.1.azuredatabricks.net
     default: true
 
 
   prod:
     workspace:
-      host: https://adb-984752964297111.11.azuredatabricks.net/
+      host: https://adb-3409616956509341.1.azuredatabricks.net
       

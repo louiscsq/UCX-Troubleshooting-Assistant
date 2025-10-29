@@ -1,3 +1,6 @@
+# Databricks Apps deployment configuration
+# Deployment settings are now in ../config.yaml under 'deployment' section
+# Add environment variables here only if you need to override config.yaml values for specific deployments
 command: [
   "streamlit", 
   "run",
@@ -7,9 +10,10 @@ command: [
 env:
   - name: STREAMLIT_BROWSER_GATHER_USAGE_STATS
     value: "false"
-  - name: "SERVING_ENDPOINT"
-    value: "agents_btafur-default-ucx_agent"
-  - name: "AUDIT_TABLE"
-    value: "btafur.default.ucx_chat_interactions"
-  - name: "AUDIT_DEBUG"
-    value: "false"
+  # Uncomment to override config.yaml values:
+  # - name: "SERVING_ENDPOINT"
+  #   value: "your-endpoint-name"
+  # - name: "AUDIT_TABLE"
+  #   value: "catalog.schema.table"
+  # - name: "AUDIT_DEBUG"
+  #   value: "false"

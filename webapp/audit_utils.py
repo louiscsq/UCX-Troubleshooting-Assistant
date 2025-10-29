@@ -1,5 +1,5 @@
 """
-UCX Troubleshooting Assistant - Audit Module with Delta Lake
+Assistant - Audit Module with Delta Lake
 
 This module provides comprehensive audit logging for chatbot interactions using Delta tables
 for scalable, ACID-compliant audit trails with native Databricks integration.
@@ -36,7 +36,7 @@ class ChatInteraction:
     user_id: Optional[str]
     user_question: str
     assistant_response: str
-    ucx_context_used: bool
+    context_used: bool
     error_type_detected: Optional[str]
     response_time_ms: int
     endpoint_used: str
@@ -48,9 +48,9 @@ class ChatInteraction:
 
 
 class DeltaChatAuditor:
-    """Handles audit logging for UCX troubleshooting chat interactions using Delta tables"""
+    """Handles audit logging for troubleshooting chat interactions using Delta tables"""
     
-    def __init__(self, table_name: str = "main.ucx_audit.chat_interactions"):
+    def __init__(self, table_name: str = "main.assistant_audit.chat_interactions"):
         """
         Initialize the Delta chat auditor
         
@@ -63,7 +63,7 @@ class DeltaChatAuditor:
         else:
             # Fallback for incomplete table names
             self.catalog_name = "main"
-            self.schema_name = "ucx_audit"
+            self.schema_name = "assistant_audit"
             self.table_name = "chat_interactions"
         
         self.full_table_name = f"{self.catalog_name}.{self.schema_name}.{self.table_name}"
@@ -74,14 +74,14 @@ class DeltaChatAuditor:
             audit_dir = Path("audit_logs")
             audit_dir.mkdir(exist_ok=True)
             today = datetime.now().strftime("%Y-%m-%d")
-            self._fallback_file = audit_dir / f"ucx_chat_audit_{today}.jsonl"
+            self._fallback_file = audit_dir / f"assistant_chat_audit_{today}.jsonl"
             self._use_fallback = True
             return
         
         self._use_fallback = False
         try:
             logger.info("Attempting to initialize Spark session...")
-            self.spark = SparkSession.builder.appName("UCX-Audit").getOrCreate()
+            self.spark = SparkSession.builder.appName("Assistant-Audit").getOrCreate()
             logger.info(f"Spark session created successfully: {self.spark}")
             
             logger.info("Attempting to initialize Databricks WorkspaceClient...")
@@ -101,7 +101,7 @@ class DeltaChatAuditor:
             audit_dir = Path("audit_logs")
             audit_dir.mkdir(exist_ok=True)
             today = datetime.now().strftime("%Y-%m-%d")
-            self._fallback_file = audit_dir / f"ucx_chat_audit_{today}.jsonl"
+            self._fallback_file = audit_dir / f"assistant_chat_audit_{today}.jsonl"
             logger.info(f"JSON fallback file: {self._fallback_file}")
     
     def _get_audit_schema(self) -> StructType:
@@ -114,7 +114,7 @@ class DeltaChatAuditor:
             StructField("user_id", StringType(), True),
             StructField("user_question", StringType(), False),
             StructField("assistant_response", StringType(), False),
-            StructField("ucx_context_used", BooleanType(), False),
+            StructField("context_used", BooleanType(), False),
             StructField("error_type_detected", StringType(), True),
             StructField("response_time_ms", IntegerType(), False),
             StructField("endpoint_used", StringType(), False),
@@ -146,8 +146,8 @@ class DeltaChatAuditor:
                 self.spark.sql(f"""
                     ALTER TABLE {self.full_table_name} 
                     SET TBLPROPERTIES (
-                        'description' = 'UCX Troubleshooting Assistant Audit Log',
-                        'created_by' = 'UCX-Troubleshooting-Assistant',
+                        'description' = 'Troubleshooting Assistant Audit Log',
+                        'created_by' = 'Troubleshooting-Assistant',
                         'data_classification' = 'internal_audit'
                     )
                 """)
@@ -169,7 +169,6 @@ class DeltaChatAuditor:
         response_time_ms: int,
         endpoint_used: str,
         interaction_type: str = "chat",
-        ucx_context_used: bool = True,
         error_type_detected: Optional[str] = None
     ) -> None:
         """
@@ -179,7 +178,7 @@ class DeltaChatAuditor:
             return self._log_interaction_fallback(
                 session_id, user_info, user_question, assistant_response,
                 response_time_ms, endpoint_used, interaction_type,
-                ucx_context_used, error_type_detected
+                error_type_detected
             )
         
         try:
@@ -192,7 +191,7 @@ class DeltaChatAuditor:
                 user_info.get("user_id"),
                 user_question,
                 assistant_response,
-                ucx_context_used,
+                False,  # context_used - always False
                 error_type_detected,
                 response_time_ms,
                 endpoint_used,
@@ -216,7 +215,7 @@ class DeltaChatAuditor:
             self._log_interaction_fallback(
                 session_id, user_info, user_question, assistant_response,
                 response_time_ms, endpoint_used, interaction_type,
-                ucx_context_used, error_type_detected
+                error_type_detected
             )
     
     def _log_interaction_fallback(
@@ -228,7 +227,6 @@ class DeltaChatAuditor:
         response_time_ms: int,
         endpoint_used: str,
         interaction_type: str = "chat",
-        ucx_context_used: bool = True,
         error_type_detected: Optional[str] = None
     ) -> None:
         """Fallback JSON file logging when Delta is not available"""
@@ -241,7 +239,7 @@ class DeltaChatAuditor:
                 user_id=user_info.get("user_id"),
                 user_question=user_question,
                 assistant_response=assistant_response,
-                ucx_context_used=ucx_context_used,
+                context_used=False,  # Always False
                 error_type_detected=error_type_detected,
                 response_time_ms=response_time_ms,
                 endpoint_used=endpoint_used,
@@ -670,7 +668,7 @@ def get_auditor(use_delta: bool = True, **kwargs) -> DeltaChatAuditor:
     if _auditor_instance is None:
         import os
         
-        table_name = kwargs.get('table_name', os.getenv('AUDIT_TABLE', 'main.ucx_audit.chat_interactions'))
+        table_name = kwargs.get('table_name', os.getenv('AUDIT_TABLE', 'main.assistant_audit.chat_interactions'))
         
         _auditor_instance = DeltaChatAuditor(table_name=table_name)
         logger.info(f"Initialized audit system: {_auditor_instance.full_table_name}")

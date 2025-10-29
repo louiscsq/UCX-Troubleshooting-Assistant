@@ -1,5 +1,5 @@
 """
-UCX Troubleshooting Assistant - Audit Dashboard with Delta Lake Support
+Assistant - Audit Dashboard with Delta Lake Support
 
 This module provides a comprehensive audit dashboard for viewing and analyzing
 chatbot interaction logs with Delta table integration and SQL querying capabilities.
@@ -39,7 +39,7 @@ class AuditDashboard:
     
     def render(self):
         """Render the complete audit dashboard"""
-        st.header("📊 UCX Chatbot Audit Dashboard")
+        st.header("📊 Assistant Audit Dashboard")
         
         # Display data source information
         stats = self.auditor.get_audit_stats()

@@ -3,13 +3,14 @@ import logging
 import os
 import time
 import uuid
+import yaml
 import streamlit as st
 from model_serving_utils import (
     query_endpoint, 
     query_endpoint_stream, 
     _get_endpoint_task_type,
 )
-from ucx_utils import UCXTroubleshooter
+from assistant_utils import AssistantTroubleshooter
 from audit_utils import get_auditor, PrivacyManager
 from simple_audit_utils import get_simple_auditor
 from collections import OrderedDict
@@ -17,6 +18,11 @@ from messages import UserMessage, AssistantResponse, render_message
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# Load configuration
+config_path = "config.yaml"
+with open(config_path, 'r') as f:
+    CONFIG = yaml.safe_load(f)
 
 def _extract_doc_sources_from_tool_messages(thinking_messages):
     """Extract unique doc_uri values from tool messages."""
@@ -80,10 +86,10 @@ def _extract_doc_sources_from_tool_messages(thinking_messages):
     
     return doc_sources
 
-SERVING_ENDPOINT = os.getenv('SERVING_ENDPOINT')
+SERVING_ENDPOINT = os.getenv('SERVING_ENDPOINT') or CONFIG.get('deployment', {}).get('serving_endpoint')
 assert SERVING_ENDPOINT, \
     ("Unable to determine serving endpoint to use for chatbot app. If developing locally, "
-     "set the SERVING_ENDPOINT environment variable to the name of your serving endpoint. If "
+     "set the SERVING_ENDPOINT environment variable or update config.yaml deployment.serving_endpoint. If "
      "deploying to a Databricks app, include a serving endpoint resource named "
      "'serving_endpoint' with CAN_QUERY permissions, as described in "
      "https://docs.databricks.com/aws/en/generative-ai/agent-framework/chat-app#deploy-the-databricks-app")
@@ -137,9 +143,10 @@ if "session_id" not in st.session_state:
     st.session_state.session_id = str(uuid.uuid4())
 
 # Display audit configuration in debug mode (optional)
-if os.getenv('AUDIT_DEBUG', 'false').lower() == 'true':
+audit_debug = os.getenv('AUDIT_DEBUG', str(CONFIG.get('deployment', {}).get('audit_debug', 'false'))).lower() == 'true'
+if audit_debug:
     audit_config = {
-        'table': os.getenv('AUDIT_TABLE', 'chat_interactions')
+        'table': os.getenv('AUDIT_TABLE') or CONFIG.get('deployment', {}).get('audit_table', 'chat_interactions')
     }
     logger.info(f"Audit configuration: {audit_config}")
 
@@ -148,7 +155,7 @@ if "visibility" not in st.session_state:
     st.session_state.visibility = "visible"
     st.session_state.disabled = False
 
-st.title("UCX Troubleshooting Assistant")
+st.title(CONFIG['ui_title'])
 
 # Check for admin dashboard access via URL parameters
 admin_access = False
@@ -206,8 +213,7 @@ if admin_access:
         assistant_response="Accessed audit dashboard via admin URL",
         response_time_ms=0,
         endpoint_used="N/A",
-        interaction_type="admin_access",
-        ucx_context_used=False
+        interaction_type="admin_access"
     )
 
     # Stop here - don't show the normal app interface
@@ -241,14 +247,14 @@ if diagnostics_access:
     
     st.stop()
 
-# Add UCX-specific sidebar
+# Add project-specific sidebar
 with st.sidebar:
-    st.header("Common Troubleshooting Examples")
+    st.header(CONFIG['sidebar_header'])
     
-    if st.button("📋 Installation Checklist"):
-        troubleshooter = UCXTroubleshooter()
+    if st.button(CONFIG['sidebar_installation_label']):
+        troubleshooter = AssistantTroubleshooter()
         checklist = troubleshooter.get_installation_checklist()
-        st.write("### Installation Checklist")
+        st.write(f"### {CONFIG['sidebar_installation_title']}")
         for item in checklist:
             st.write(item)
         
@@ -260,14 +266,13 @@ with st.sidebar:
             assistant_response=f"Provided {len(checklist)} installation checklist items",
             response_time_ms=0,
             endpoint_used="N/A",
-            interaction_type="checklist",
-            ucx_context_used=False
+            interaction_type="checklist"
         )
     
-    if st.button("🔍 Assessment Checklist"):
-        troubleshooter = UCXTroubleshooter()
+    if st.button(CONFIG['sidebar_assessment_label']):
+        troubleshooter = AssistantTroubleshooter()
         checklist = troubleshooter.get_assessment_checklist()
-        st.write("### Assessment Checklist")
+        st.write(f"### {CONFIG['sidebar_assessment_title']}")
         for item in checklist:
             st.write(item)
         
@@ -279,14 +284,13 @@ with st.sidebar:
             assistant_response=f"Provided {len(checklist)} assessment checklist items",
             response_time_ms=0,
             endpoint_used="N/A",
-            interaction_type="checklist",
-            ucx_context_used=False
+            interaction_type="checklist"
         )
     
-    if st.button("📚 Common Errors"):
-        troubleshooter = UCXTroubleshooter()
+    if st.button(CONFIG['sidebar_errors_label']):
+        troubleshooter = AssistantTroubleshooter()
         errors = troubleshooter.get_common_errors()
-        st.write("### Common UCX Errors")
+        st.write(f"### {CONFIG['sidebar_errors_title']}")
         for error_key, error_info in errors.items():
             with st.expander(f"🚨 {error_info['error']}"):
                 st.write(f"**Solution:** {error_info['solution']}")
@@ -300,14 +304,10 @@ with st.sidebar:
             assistant_response=f"Provided {len(errors)} common error solutions",
             response_time_ms=0,
             endpoint_used="N/A",
-            interaction_type="common_errors",
-            ucx_context_used=False
+            interaction_type="common_errors"
         )
 
-st.markdown(
-    "💡 **UCX Troubleshooting Assistant** - Get help with Unity Catalog Migration issues, "
-    "installation problems, and assessment errors. Describe your issue and I'll provide specific guidance!"
-)
+st.markdown(CONFIG['ui_tagline'])
 
 # Initialize chat history
 if "history" not in st.session_state:
@@ -787,7 +787,7 @@ for i, element in enumerate(st.session_state.history):
 
 
 # --- Chat input (must run BEFORE rendering messages) ---
-prompt = st.chat_input("Describe your UCX issue or ask any Unity Catalog migration question...")
+prompt = st.chat_input(CONFIG['chat_placeholder'])
 if prompt:
     # Start timing for audit logging
     start_time = time.time()
@@ -796,7 +796,7 @@ if prompt:
     error_type_detected = None
     if any(keyword in prompt.lower() for keyword in ['error', 'fail', 'issue', 'problem', 'trouble']):
         # Try to classify the error type
-        troubleshooter = UCXTroubleshooter()
+        troubleshooter = AssistantTroubleshooter()
         error_analysis = troubleshooter.analyze_error_message(prompt)
         error_type_detected = error_analysis.get('error', 'Unknown error')
     
@@ -845,7 +845,6 @@ if prompt:
         response_time_ms=response_time_ms,
         endpoint_used=SERVING_ENDPOINT,
         interaction_type="chat",
-        ucx_context_used=False,
         error_type_detected=error_type_detected
     )
     
@@ -866,7 +865,7 @@ if prompt:
             story = []
             
             # Add content
-            story.append(Paragraph("UCX Troubleshooting Assistant Response", styles['Title']))
+            story.append(Paragraph(CONFIG['pdf_title'], styles['Title']))
             story.append(Spacer(1, 12))
             story.append(Paragraph(f"Date: {time.strftime('%Y-%m-%d %H:%M:%S')}", styles['Normal']))
             story.append(Paragraph(f"Question: {prompt}", styles['Normal']))
@@ -905,14 +904,14 @@ if prompt:
         
         with col1:
             word_count = len(final_content_for_pdf.split())
-            st.markdown(f"**💾 Download available** • {word_count} words • Ready for customer documentation")
+            st.markdown(f"**💾 Download available** • {word_count} words • {CONFIG['pdf_download_label']}")
         
         with col2:
             # Small icon-sized download button that persists
             st.download_button(
                 label="📄",
                 data=st.session_state[pdf_session_key],
-                file_name=f"UCX_Response_{time.strftime('%Y%m%d_%H%M%S')}.pdf",
+                file_name=f"{CONFIG['pdf_filename_prefix']}_{time.strftime('%Y%m%d_%H%M%S')}.pdf",
                 mime="application/pdf",
                 help="Download PDF report",
                 key=persistent_key,

@@ -1,5 +1,5 @@
 """
-UCX Troubleshooting Assistant - Simple Audit Module
+Troubleshooting Assistant - Simple Audit Module
 
 Simplified approach that uses existing JSON auditing but displays as if it's Delta.
 This gives us the UI benefits without complex SQL connectivity issues.
@@ -31,7 +31,7 @@ class ChatInteraction:
     user_id: Optional[str]
     user_question: str
     assistant_response: str
-    ucx_context_used: bool
+    context_used: bool
     error_type_detected: Optional[str]
     response_time_ms: int
     endpoint_used: str
@@ -45,7 +45,7 @@ class ChatInteraction:
 class SimpleDeltaAuditor:
     """Simple auditor that uses JSON but reports as Delta Lake for better UX"""
     
-    def __init__(self, table_name: str = "main.ucx_audit.chat_interactions"):
+    def __init__(self, table_name: str = "main.assistant_audit.chat_interactions"):
         """
         Initialize simple Delta auditor
         
@@ -59,7 +59,7 @@ class SimpleDeltaAuditor:
         audit_dir = Path("audit_logs")
         audit_dir.mkdir(exist_ok=True)
         today = datetime.now().strftime("%Y-%m-%d")
-        self._audit_file = audit_dir / f"ucx_chat_audit_{today}.jsonl"
+        self._audit_file = audit_dir / f"assistant_chat_audit_{today}.jsonl"
         
         # Check if we can connect to workspace (for reporting purposes)
         self.databricks_connected = False
@@ -76,7 +76,7 @@ class SimpleDeltaAuditor:
     def log_interaction(self, session_id: str, user_info: Dict[str, Optional[str]], 
                        user_question: str, assistant_response: str, response_time_ms: int,
                        endpoint_used: str, interaction_type: str = "chat", 
-                       ucx_context_used: bool = True, error_type_detected: Optional[str] = None) -> None:
+                       error_type_detected: Optional[str] = None) -> None:
         """Log interaction to JSON file"""
         
         try:
@@ -88,7 +88,7 @@ class SimpleDeltaAuditor:
                 user_id=user_info.get('user_id'),
                 user_question=user_question[:1000] if user_question else "",  # Limit length
                 assistant_response=assistant_response[:2000] if assistant_response else "",  # Limit length
-                ucx_context_used=ucx_context_used,
+                context_used=False,  # Always False
                 error_type_detected=error_type_detected,
                 response_time_ms=response_time_ms,
                 endpoint_used=endpoint_used,
@@ -265,7 +265,7 @@ def get_simple_auditor(**kwargs) -> SimpleDeltaAuditor:
     if _simple_auditor_instance is None:
         import os
         
-        table_name = kwargs.get('table_name', os.getenv('AUDIT_TABLE', 'main.ucx_audit.chat_interactions'))
+        table_name = kwargs.get('table_name', os.getenv('AUDIT_TABLE', 'main.assistant_audit.chat_interactions'))
         
         _simple_auditor_instance = SimpleDeltaAuditor(table_name=table_name)
         logger.info(f"Initialized simple audit system: {_simple_auditor_instance.full_table_name}")
