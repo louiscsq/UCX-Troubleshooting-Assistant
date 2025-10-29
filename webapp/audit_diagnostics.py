@@ -1,5 +1,5 @@
 """
-UCX Troubleshooting Assistant - Audit System Diagnostics
+Assistant - Audit System Diagnostics
 
 This utility helps diagnose and troubleshoot audit system issues.
 """
@@ -76,7 +76,7 @@ class AuditDiagnostics:
             audit_dir = Path("audit_logs")
             from datetime import datetime
             today = datetime.now().strftime("%Y-%m-%d")
-            audit_file = audit_dir / f"ucx_chat_audit_{today}.jsonl"
+            audit_file = audit_dir / f"assistant_chat_audit_{today}.jsonl"
             
             diagnosis['storage'] = {
                 'mode': 'json_fallback',
@@ -184,7 +184,7 @@ File Size: {storage['file_size']} bytes
                     
                     from datetime import datetime
                     today = datetime.now().strftime("%Y-%m-%d")
-                    audit_file = audit_dir / f"ucx_chat_audit_{today}.jsonl"
+                    audit_file = audit_dir / f"assistant_chat_audit_{today}.jsonl"
                     
                     # Create empty file
                     with open(audit_file, 'w', encoding='utf-8') as f:
@@ -208,7 +208,7 @@ def fix_audit_initialization():
         # Create today's audit file if it doesn't exist
         from datetime import datetime
         today = datetime.now().strftime("%Y-%m-%d")
-        audit_file = audit_dir / f"ucx_chat_audit_{today}.jsonl"
+        audit_file = audit_dir / f"assistant_chat_audit_{today}.jsonl"
         
         if not audit_file.exists():
             with open(audit_file, 'w', encoding='utf-8') as f:

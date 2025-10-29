@@ -1,0 +1,149 @@
+# Project Configuration
+# Edit this file to customize the troubleshooting assistant for different repositories
+
+# Project Identity
+project_name: "UCX"
+project_full_name: "Unity Catalog Migration"
+repository: "databrickslabs/ucx"
+
+# UI Text
+ui_title: "UCX Troubleshooting Assistant"
+ui_tagline: "💡 **UCX Troubleshooting Assistant** - Get help with Unity Catalog Migration issues, installation problems, and assessment errors. Describe your issue and I'll provide specific guidance!"
+chat_placeholder: "Describe your UCX issue or ask any Unity Catalog migration question..."
+
+# Sidebar
+sidebar_header: "Common Troubleshooting Examples"
+sidebar_installation_label: "📋 Installation Checklist"
+sidebar_installation_title: "Installation Checklist"
+sidebar_assessment_label: "🔍 Assessment Checklist"
+sidebar_assessment_title: "Assessment Checklist"
+sidebar_errors_label: "📚 Common Errors"
+sidebar_errors_title: "Common UCX Errors"
+
+# PDF Settings
+pdf_filename_prefix: "UCX_Response"
+pdf_title: "UCX Troubleshooting Assistant Response"
+pdf_download_label: "Ready for customer documentation"
+
+# Checklists
+installation_checklist:
+  - "✓ Verify you have Databricks workspace administrator privileges"
+  - "✓ Ensure Python 3.10+ is installed"
+  - "✓ Update Databricks CLI to v0.213 or higher"
+  - "✓ Verify Unity Catalog is enabled in your workspace"
+  - "✓ Check network connectivity to external resources if using external HMS"
+  - "✓ Ensure sufficient compute resources are available"
+  - "✓ Verify authentication credentials are valid"
+  - "✓ Check workspace storage permissions"
+
+assessment_checklist:
+  - "✓ UCX is successfully installed"
+  - "✓ Authentication is properly configured"
+  - "✓ Assessment cluster is running and accessible"
+  - "✓ Required permissions are granted for data scanning"
+  - "✓ External data sources are accessible (if applicable)"
+  - "✓ Sufficient workspace storage for assessment results"
+  - "✓ Network connectivity to all data sources"
+
+# Common Errors
+errors:
+  insufficient_privileges:
+    error: "Insufficient privileges for UCX installation"
+    solution: "Ensure you have Databricks workspace administrator privileges. UCX requires admin access to deploy assets into the workspace."
+    details: "The installation process needs to create workflows, clusters, and other workspace resources."
+  
+  python_version:
+    error: "Python version compatibility issues"
+    solution: "Upgrade to Python 3.10 or later. UCX requires modern Python features for proper operation."
+    details: "Check your cluster's Python version and ensure it meets the minimum requirements."
+  
+  databricks_cli:
+    error: "Databricks CLI issues"
+    solution: "Update Databricks CLI to v0.213 or higher. Older versions may have compatibility issues."
+    details: "Run 'databricks version' to check current version and 'pip install --upgrade databricks-cli' to update."
+  
+  authentication:
+    error: "Authentication failures during UCX operations"
+    solution: "Verify your authentication credentials. Use DATABRICKS_HOST and DATABRICKS_TOKEN environment variables or --profile flag."
+    details: "Check token validity and workspace permissions."
+  
+  external_hms:
+    error: "External Hive Metastore connectivity issues"
+    solution: "Verify network configuration and HMS connectivity. Ensure firewall rules allow communication."
+    details: "Check HMS endpoints, credentials, and network policies."
+  
+  cluster_config:
+    error: "Cluster configuration or resource issues"
+    solution: "Check cluster policies and resource availability. Ensure sufficient compute resources are allocated."
+    details: "Review cluster logs and resource quotas."
+  
+  unity_catalog_not_enabled:
+    error: "Unity Catalog not enabled in workspace"
+    solution: "Enable Unity Catalog in your Databricks workspace. Contact your workspace admin if needed."
+    details: "UCX requires Unity Catalog to be enabled for migration operations."
+
+# Agent Configuration
+agent:
+  llm_endpoint: "databricks-claude-sonnet-4"
+  
+  system_prompt: |
+    You are a UCX (Databricks Unity Catalog Migration Assistant) expert assistant with access to the UCX codebase and documentation. UCX is a framework that automates migration processes including assessment, group migration, table migration, and code migration steps.
+
+    RESPONSE GUIDELINES:
+    - Be concise and direct unless the user requests details or clarification is essential. Do not overexplain or make assumptions. Aim for at maximum 200 words in the final answer (unless absolutely necessary). Do not repeat yourself. Do not add tables, matrices, warnings, best practices, summaries unless explicitly asked for.
+    - Verify all functionality and commands exist in the codebase/documentation before confirming them
+    - If information is unavailable or uncertain, clearly state that you don't have enough information to answer this.
+
+    REASONING PROCESS:
+    - Before calling any tool, explain what information you're looking for and why
+    - After receiving tool results, analyze what you learned and determine if you need more information
+    - If you need to call multiple tools, explain your strategy first
+    - Synthesize information from multiple sources before providing your final answer
+
+    CRITICAL CONSIDERATIONS:
+    - Cloud platform differences: Azure and AWS have fuller support; GCP functionality is significantly more limited
+    - Managed vs. External: Be careful between these types of tables. Also be careful with table formats. For example: External Delta table might not have the same migration pattern as an external Parquet table.
+    - Do not get confused between different ACL types: Databricks Workspace ACLs, Unity Catalog ACLs, and cloud provider ACLs
+    - Out-of-the-box usage: UCX is designed for use without code modifications. Users will call the UCX CLI or trigger Databricks Workflows. They cannot interact with specific python functions that are inside the library.
+    - If a feature doesn't exist but could be easily implemented, suggest the user request it from the UCX development team rather than implementing it themselves
+
+    VALIDATION RULES:
+    - Never say a feature exists based solely on user questions. Validate with the codebase and documentation
+    - Never say a command exists without verification. Validate with the codebase and documentation
+    - Only say something is possible after validating with the codebase and documentation
+    - Only provide solutions that are confirmed to work in the codebase and documentation
+  
+  tools:
+    docs_retriever:
+      name: "docs_retriever"
+      description: "Retrieves UCX documentation including user guides, CLI commands, workflow descriptions, and feature explanations. Use this for understanding user-facing functionality and usage patterns. But always confirm with the codebase"
+      num_results: 10
+    
+    codebase_retriever:
+      name: "codebase_retriever"
+      description: "Retrieves UCX source code including Python/SQL function definitions, classes, and implementation details. Use this to verify implementation details, validate that features exist, or understand technical internals. Always cross-reference with documentation to confirm user-facing availability."
+      num_results: 8
+
+# Code Summarization Configuration
+codebase_ingestion:
+  summarization_prompt: "You are optimized to generate accurate descriptions for given Python or SQL codes. The code is part of the UCX assessment library (for Unity Catalog Migrations from hive metatore). When the user inputs the code, you must return the description according to its goal and functionality. You are not allowed to generate additional details. The user expects at least 5 sentence-long descriptions. Do not mention again in the summary that this is part of the UCX assessment library. Do not make assumptions. Here is the code: "
+
+# Evaluation Example. Used while building the agent as a quick test.
+evaluation:
+  dataset:
+    - inputs:
+        input:
+          - role: "user"
+            content: "Can ucx migrate tables from external to managed?"
+      expected_response: "UCX cannot migrate from external DELTA tabls to managed. It has other different strategies. External DELTA tables are migrated from external to external."
+
+# Deployment Configuration (used by Databricks Apps and webapp)
+# These values can be overridden by environment variables:
+#   - SERVING_ENDPOINT overrides serving_endpoint
+#   - AUDIT_TABLE overrides audit_table  
+#   - AUDIT_DEBUG overrides audit_debug
+deployment:
+  serving_endpoint: "agents_testcatalogv2-default-ucx_agent"
+  audit_table: "testcatalogv2.default.ucx_chat_interactions"  # Format: catalog.schema.table
+  audit_debug: false
+

@@ -1,23 +1,44 @@
 """
-UCX Troubleshooting Assistant - Configuration Helper
+Troubleshooting Assistant - Configuration Helper
 
 This utility helps manage audit table configuration across different environments.
 """
 
 import os
+import yaml
 from typing import Dict, Any
+
+# Load main config.yaml
+config_path = "config.yaml"
+try:
+    with open(config_path, 'r') as f:
+        MAIN_CONFIG = yaml.safe_load(f)
+except Exception:
+    MAIN_CONFIG = {}
 
 class AuditConfig:
     """Configuration helper for audit system"""
     
     @staticmethod
     def get_config() -> Dict[str, Any]:
-        """Get current audit configuration from environment"""
+        """Get current audit configuration from environment or config.yaml"""
+        # Parse audit_table from config to extract catalog, schema, table
+        audit_table_config = MAIN_CONFIG.get('deployment', {}).get('audit_table', 'main.assistant_audit.chat_interactions')
+        parts = audit_table_config.split('.')
+        
+        default_catalog = parts[0] if len(parts) >= 3 else 'main'
+        default_schema = parts[1] if len(parts) >= 3 else 'assistant_audit'
+        default_table = parts[2] if len(parts) >= 3 else 'chat_interactions'
+        
+        catalog = os.getenv('AUDIT_CATALOG', default_catalog)
+        schema = os.getenv('AUDIT_SCHEMA', default_schema)
+        table = os.getenv('AUDIT_TABLE', audit_table_config)
+        
         return {
-            'catalog_name': os.getenv('AUDIT_CATALOG', 'main'),
-            'schema_name': os.getenv('AUDIT_SCHEMA', 'ucx_audit'),
-            'table_name': os.getenv('AUDIT_TABLE', 'chat_interactions'),
-            'full_table_name': f"{os.getenv('AUDIT_CATALOG', 'main')}.{os.getenv('AUDIT_SCHEMA', 'ucx_audit')}.{os.getenv('AUDIT_TABLE', 'chat_interactions')}"
+            'catalog_name': catalog,
+            'schema_name': schema,
+            'table_name': table.split('.')[-1] if '.' in table else table,
+            'full_table_name': table if '.' in table else f"{catalog}.{schema}.{table}"
         }
     
     @staticmethod
@@ -59,7 +80,7 @@ class AuditConfig:
             validation['errors'].append(f"Invalid table name '{config['table_name']}'. Must start with letter/underscore and contain only letters, numbers, hyphens, underscores.")
         
         # Add warnings for common issues
-        if config['catalog_name'] == 'main' and config['schema_name'] == 'ucx_audit':
+        if config['catalog_name'] == 'main' and config['schema_name'] == 'assistant_audit':
             validation['warnings'].append("Using default catalog and schema. Consider using environment-specific names for production.")
         
         validation['config'] = config
@@ -98,22 +119,22 @@ export AUDIT_TABLE="{config['table_name']}"
 ENVIRONMENT_PRESETS = {
     'development': {
         'catalog_name': 'main',
-        'schema_name': 'ucx_audit_dev',
+        'schema_name': 'assistant_audit_dev',
         'table_name': 'chat_interactions'
     },
     'staging': {
         'catalog_name': 'main',
-        'schema_name': 'ucx_audit_staging',
+        'schema_name': 'assistant_audit_staging',
         'table_name': 'chat_interactions'
     },
     'production': {
         'catalog_name': 'main',
-        'schema_name': 'ucx_audit_prod',
+        'schema_name': 'assistant_audit_prod',
         'table_name': 'chat_interactions'
     },
     'shared': {
         'catalog_name': 'shared',
-        'schema_name': 'ucx_audit',
+        'schema_name': 'assistant_audit',
         'table_name': 'chat_interactions'
     }
 }

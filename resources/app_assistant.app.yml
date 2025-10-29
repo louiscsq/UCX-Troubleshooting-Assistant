@@ -1,6 +1,6 @@
 resources:
   apps:
-    ucx_assistant_app:
+    app_assistant:
       name: ${bundle.target}-${bundle.name}
-      description: "UCX Troubleshooting Assistant - Unity Catalog Migration Helper"
+      description: "Troubleshooting Assistant"
       source_code_path: ../webapp

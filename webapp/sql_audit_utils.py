@@ -1,5 +1,5 @@
 """
-UCX Troubleshooting Assistant - SQL-based Audit Module
+Troubleshooting Assistant - SQL-based Audit Module
 
 Uses Databricks SQL Warehouse instead of Spark for Delta operations.
 No separate compute required - uses workspace's serverless SQL capability.
@@ -32,7 +32,7 @@ class ChatInteraction:
     user_id: Optional[str] 
     user_question: str
     assistant_response: str
-    ucx_context_used: bool
+    context_used: bool
     error_type_detected: Optional[str]
     response_time_ms: int
     endpoint_used: str
@@ -46,7 +46,7 @@ class ChatInteraction:
 class SQLChatAuditor:
     """Handles audit logging using Databricks SQL Warehouse - no separate compute needed"""
     
-    def __init__(self, table_name: str = "main.ucx_audit.chat_interactions"):
+    def __init__(self, table_name: str = "main.assistant_audit.chat_interactions"):
         """
         Initialize SQL-based chat auditor
         
@@ -59,7 +59,7 @@ class SQLChatAuditor:
         else:
             # Fallback for incomplete table names
             self.catalog_name = "main"
-            self.schema_name = "ucx_audit"
+            self.schema_name = "assistant_audit"
             self.table_name = "chat_interactions"
         
         self.full_table_name = f"{self.catalog_name}.{self.schema_name}.{self.table_name}"
@@ -70,7 +70,7 @@ class SQLChatAuditor:
             audit_dir = Path("audit_logs")
             audit_dir.mkdir(exist_ok=True)
             today = datetime.now().strftime("%Y-%m-%d")
-            self._fallback_file = audit_dir / f"ucx_chat_audit_{today}.jsonl"
+            self._fallback_file = audit_dir / f"assistant_chat_audit_{today}.jsonl"
             self._use_fallback = True
             return
         
@@ -109,7 +109,7 @@ class SQLChatAuditor:
             audit_dir = Path("audit_logs")
             audit_dir.mkdir(exist_ok=True)
             today = datetime.now().strftime("%Y-%m-%d")
-            self._fallback_file = audit_dir / f"ucx_chat_audit_{today}.jsonl"
+            self._fallback_file = audit_dir / f"assistant_chat_audit_{today}.jsonl"
     
     def _execute_sql(self, sql_query: str, params: tuple = None):
         """Execute SQL using Databricks SDK"""
@@ -171,15 +171,15 @@ class SQLChatAuditor:
                 user_id STRING,
                 user_question STRING,
                 assistant_response STRING,
-                ucx_context_used BOOLEAN,
+                context_used BOOLEAN,
                 error_type_detected STRING,
                 response_time_ms BIGINT,
                 endpoint_used STRING,
                 interaction_type STRING
             ) USING DELTA
             TBLPROPERTIES (
-                'description' = 'UCX Troubleshooting Assistant Audit Log',
-                'created_by' = 'UCX-Troubleshooting-Assistant',
+                'description' = 'Troubleshooting Assistant Audit Log',
+                'created_by' = 'Troubleshooting-Assistant',
                 'data_classification' = 'internal_audit'
             )
             """
@@ -203,13 +203,13 @@ class SQLChatAuditor:
     def log_interaction(self, session_id: str, user_info: Dict[str, Optional[str]], 
                        user_question: str, assistant_response: str, response_time_ms: int,
                        endpoint_used: str, interaction_type: str = "chat", 
-                       ucx_context_used: bool = True, error_type_detected: Optional[str] = None) -> None:
+                       error_type_detected: Optional[str] = None) -> None:
         """Log interaction using SQL INSERT"""
         
         if self._use_fallback:
             return self._log_interaction_fallback(session_id, user_info, user_question, 
                                                 assistant_response, response_time_ms, endpoint_used,
-                                                interaction_type, ucx_context_used, error_type_detected)
+                                                interaction_type, error_type_detected)
         
         try:
             interaction = ChatInteraction(
@@ -220,7 +220,7 @@ class SQLChatAuditor:
                 user_id=user_info.get('user_id'),
                 user_question=user_question[:1000],  # Limit length
                 assistant_response=assistant_response[:2000],  # Limit length
-                ucx_context_used=ucx_context_used,
+                context_used=False,  # Always False
                 error_type_detected=error_type_detected,
                 response_time_ms=response_time_ms,
                 endpoint_used=endpoint_used,
@@ -237,7 +237,7 @@ class SQLChatAuditor:
                 {f"'{interaction.user_id}'" if interaction.user_id else 'NULL'},
                 '{interaction.user_question.replace("'", "''")}',
                 '{interaction.assistant_response.replace("'", "''")[:2000]}',
-                {str(interaction.ucx_context_used).lower()},
+                {str(interaction.context_used).lower()},
                 {f"'{interaction.error_type_detected}'" if interaction.error_type_detected else 'NULL'},
                 {interaction.response_time_ms},
                 '{interaction.endpoint_used}',
@@ -253,7 +253,7 @@ class SQLChatAuditor:
             # Fall back to JSON logging for this interaction
             self._log_interaction_fallback(session_id, user_info, user_question, 
                                          assistant_response, response_time_ms, endpoint_used,
-                                         interaction_type, ucx_context_used, error_type_detected)
+                                         interaction_type, error_type_detected)
     
     def get_audit_stats(self) -> Dict[str, Any]:
         """Get audit statistics using SQL queries"""
@@ -327,7 +327,7 @@ class SQLChatAuditor:
         try:
             result = self._execute_sql(f"""
                 SELECT timestamp, session_id, user_name, user_email, user_id,
-                       user_question, assistant_response, ucx_context_used,
+                       user_question, assistant_response, context_used,
                        error_type_detected, response_time_ms, endpoint_used, interaction_type
                 FROM {self.full_table_name}
                 WHERE user_email = '{user_email}'
@@ -346,7 +346,7 @@ class SQLChatAuditor:
                         'user_id': row[4],
                         'user_question': row[5],
                         'assistant_response': row[6],
-                        'ucx_context_used': row[7],
+                        'context_used': row[7],
                         'error_type_detected': row[8],
                         'response_time_ms': row[9],
                         'endpoint_used': row[10],
@@ -366,7 +366,7 @@ class SQLChatAuditor:
         try:
             result = self._execute_sql(f"""
                 SELECT timestamp, session_id, user_name, user_email, user_id,
-                       user_question, assistant_response, ucx_context_used,
+                       user_question, assistant_response, context_used,
                        error_type_detected, response_time_ms, endpoint_used, interaction_type
                 FROM {self.full_table_name}
                 ORDER BY timestamp DESC
@@ -384,7 +384,7 @@ class SQLChatAuditor:
                         'user_id': row[4],
                         'user_question': row[5],
                         'assistant_response': row[6],
-                        'ucx_context_used': row[7],
+                        'context_used': row[7],
                         'error_type_detected': row[8],
                         'response_time_ms': row[9],
                         'endpoint_used': row[10],
@@ -443,7 +443,7 @@ class SQLChatAuditor:
             
             result = self._execute_sql(f"""
                 SELECT timestamp, session_id, user_name, user_email, user_id,
-                       user_question, assistant_response, ucx_context_used,
+                       user_question, assistant_response, context_used,
                        error_type_detected, response_time_ms, endpoint_used, interaction_type
                 FROM {self.full_table_name}
                 {where_clause}
@@ -461,7 +461,7 @@ class SQLChatAuditor:
                         'user_id': row[4],
                         'user_question': row[5],
                         'assistant_response': row[6],
-                        'ucx_context_used': row[7],
+                        'context_used': row[7],
                         'error_type_detected': row[8],
                         'response_time_ms': row[9],
                         'endpoint_used': row[10],
@@ -488,7 +488,7 @@ class SQLChatAuditor:
     
     def _log_interaction_fallback(self, session_id: str, user_info: Dict[str, Optional[str]], 
                                 user_question: str, assistant_response: str, response_time_ms: int,
-                                endpoint_used: str, interaction_type: str, ucx_context_used: bool, 
+                                endpoint_used: str, interaction_type: str, 
                                 error_type_detected: Optional[str]) -> None:
         """Fallback to JSON logging"""
         try:
@@ -500,7 +500,7 @@ class SQLChatAuditor:
                 user_id=user_info.get('user_id'),
                 user_question=user_question,
                 assistant_response=assistant_response,
-                ucx_context_used=ucx_context_used,
+                context_used=False,  # Always False
                 error_type_detected=error_type_detected,
                 response_time_ms=response_time_ms,
                 endpoint_used=endpoint_used,
@@ -572,7 +572,7 @@ def get_sql_auditor(**kwargs) -> SQLChatAuditor:
     if _sql_auditor_instance is None:
         import os
         
-        table_name = kwargs.get('table_name', os.getenv('AUDIT_TABLE', 'main.ucx_audit.chat_interactions'))
+        table_name = kwargs.get('table_name', os.getenv('AUDIT_TABLE', 'main.assistant_audit.chat_interactions'))
         
         _sql_auditor_instance = SQLChatAuditor(table_name=table_name)
         logger.info(f"Initialized SQL audit system: {_sql_auditor_instance.full_table_name}")

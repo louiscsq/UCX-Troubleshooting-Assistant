@@ -77,8 +77,7 @@ UCX Troubleshooting Assistant
 - **`audit_utils.py`**: Comprehensive audit logging and privacy management with Delta Lake
 - **`audit_dashboard.py`**: Interactive dashboard for audit analytics and reporting
 - **`config_helper.py`**: Configuration utilities and validation for audit system
-- **`admin_utils.py`**: Admin URL generation and secure dashboard access utilities
-- **`ucx_utils.py`**: UCX troubleshooting utilities (legacy support)
+- **`assistant_utils.py`**: Troubleshooting utilities (configurable via config.yaml)
 
 **Configuration Files:**
 - **`databricks.yml`**: Bundle configuration with variables for catalogs, schemas, and endpoints
@@ -291,12 +290,10 @@ UCX-Troubleshooting-Assistant/
 │   ├── audit_dashboard.py            # Interactive audit dashboard
 │   ├── audit_diagnostics.py          # Audit diagnostics utilities
 │   ├── config_helper.py              # Configuration validation
-│   ├── admin_utils.py                # Admin URL generation
 │   ├── messages.py                   # Message rendering utilities
 │   ├── simple_audit_utils.py         # Simple audit utilities
-│   ├── spark_diagnostics.py          # Spark diagnostics
 │   ├── sql_audit_utils.py            # SQL audit utilities
-│   ├── ucx_utils.py                  # UCX troubleshooting utilities
+│   ├── assistant_utils.py            # Troubleshooting utilities
 │   └── requirements.txt              # Python dependencies
 │
 ├── databricks.yml                    # Databricks bundle configuration

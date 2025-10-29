@@ -4,18 +4,13 @@
 
 # COMMAND ----------
 
-# MAGIC %pip install sourcegraph
-# MAGIC %pip install streamlit
+# MAGIC %pip install sourcegraph streamlit PyYAML
 # MAGIC dbutils.library.restartPython()
 
 # COMMAND ----------
 
-import os
-from typing import List
-import numpy as np
+import yaml
 from sourcegraph import Sourcegraph
-from pkg_resources import get_distribution
-import datetime
 
 # COMMAND ----------
 
@@ -31,6 +26,17 @@ table_codebase = dbutils.widgets.get("table_codebase")
 
 dbutils.widgets.text("github_token", "", "")
 github_token = dbutils.widgets.get("github_token")
+
+# Load the main configuration file
+config_path = "../webapp/config.yaml"
+with open(config_path, "r") as f:
+    main_config = yaml.safe_load(f)
+
+summarization_prompt = main_config.get("codebase_ingestion", {}).get("summarization_prompt", "")
+
+# Set summarization_prompt as a widget so it can be used in SQL magic cells
+dbutils.widgets.text("summarization_prompt", summarization_prompt, "")
+summarization_prompt = dbutils.widgets.get("summarization_prompt")
 
 # COMMAND ----------
 
@@ -153,7 +159,7 @@ print(f"{combined_df.count()} documents indexed")
 # MAGIC   definition, '\n\n', ai_query(
 # MAGIC      :summarising_endpoint, 
 # MAGIC     CONCAT(
-# MAGIC       'You are optimized to generate accurate descriptions for given Python or SQL codes. The code is part of the UCX assessment library (for Unity Catalog Migrations from hive metatore). When the user inputs the code, you must return the description according to its goal and functionality. You are not allowed to generate additional details. The user expects at least 5 sentence-long descriptions. Do not mention again in the summary that this is part of the UCX assessment library. Do not make assumptions. Here is the code: ', 
+# MAGIC       :summarization_prompt, 
 # MAGIC       definition
 # MAGIC     )
 # MAGIC   )
