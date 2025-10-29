@@ -23,10 +23,12 @@ resources:
         - task_key: ingest_documentation
           notebook_task:
             notebook_path: "../01_data_ingestion_and_setup/ingest_documentation.py"
+          environment_key: env2
 
         - task_key: ingest_codebase
           notebook_task:
             notebook_path: "../01_data_ingestion_and_setup/ingest_codebase.py"
+          environment_key: env2
 
         - task_key: create_vector_codebase
           notebook_task:
