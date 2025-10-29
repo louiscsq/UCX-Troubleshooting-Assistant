@@ -3,8 +3,9 @@
 An intelligent AI-powered assistant for troubleshooting Unity Catalog Migration (UCX) issues. Built with Streamlit, powered by Claude Sonnet 4.5, and enhanced with vector search over the UCX codebase and documentation for context-aware assistance.
 
 <p align="center">
-  <img src="https://github.com/databrickslabs/ucx/raw/main/docs/ucx/static/img/logo.svg" width="200" alt="UCX Logo">
-    <b>🚀 UCX - Unity Catalog Migration Assistant</b>
+  <img src="https://github.com/databrickslabs/ucx/raw/main/docs/ucx/static/img/logo.svg" width="200" alt="UCX Logo"><br>
+    <b>UCX Troubleshooting Assistant
+</b>
 </p>
 
 ## Features
