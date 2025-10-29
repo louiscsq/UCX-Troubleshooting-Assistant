@@ -87,6 +87,9 @@ cd UCX-Troubleshooting-Assistant
 Edit required variables:
 ```yaml
 variables:
+  repo:
+    default: "databrickslabs/ucx"  # ⚠️ UPDATE: GitHub repo to ingest (owner/repo format)
+  
   vector_search_endpoint:
     default: "your_vector_search_endpoint"  # ⚠️ REQUIRED
   
@@ -100,6 +103,7 @@ targets:
 ```
 
 **Key Requirements:**
+- **`repo`**: GitHub repository to ingest in `owner/repo` format (default: `databrickslabs/ucx`)
 - **`vector_search_endpoint`**: Must exist before deployment (create via Databricks UI: Compute → Vector Search)
 - **`schema`**: Must be in `catalog.schema` format with existing catalog and schema
 - Optional variables (audit_table, table_codebase, etc.) can use default values
@@ -195,60 +199,16 @@ UCX-Troubleshooting-Assistant/
 
 ## 📊 Audit & Compliance
 
-### **Interaction Logging**
-The assistant includes enterprise-grade audit logging with Delta Lake:
+The assistant includes audit logging with Delta Lake that tracks user interactions, questions, responses, and response times. All data is stored in Unity Catalog with automatic privacy protection.
 
-- **User Identity**: Automatically captures user info from Databricks authentication
-- **Session Tracking**: Unique session IDs for conversation continuity
-- **Interaction Details**: Questions, responses, response times, and error classifications
-- **Privacy Protection**: Automatic redaction of sensitive information (tokens, keys, passwords)
-
-### **Configuration**
+**Configuration:**
 ```yaml
 # webapp/config.yaml
 deployment:
   audit_table: "catalog.schema.ucx_chat_interactions"
-  audit_debug: false
 ```
 
-### **Audit Schema**
-```sql
-CREATE TABLE {catalog}.{schema}.ucx_chat_interactions (
-  timestamp TIMESTAMP,
-  session_id STRING,
-  user_email STRING,
-  user_question STRING,
-  assistant_response STRING,
-  response_time_ms INTEGER,
-  error_type_detected STRING,
-  ...
-) USING DELTA
-```
-
-### **Audit Dashboard**
-**Access via special URL** (hidden from main interface for security):
-```
-https://your-app-url.databricksapps.com?admin=dashboard
-```
-
-**Dashboard Features:**
-- 📈 Overview metrics (total interactions, unique users, activity trends)
-- ⏰ Timeline analysis with charts (daily/hourly patterns)
-- 👥 User patterns and response time analysis
-- 🚨 Error tracking and classification
-- 📤 Export capabilities (JSON/CSV with date filtering)
-- 🔍 Custom SQL queries on audit data
-
-**Example Analytics Query:**
-```sql
--- Top users and average response times
-SELECT user_email, COUNT(*) as interactions, 
-       AVG(response_time_ms) as avg_response_time
-FROM {audit_table}
-GROUP BY user_email
-ORDER BY interactions DESC
-LIMIT 10
-```
+**Audit Dashboard:** Access at `https://your-app-url.databricksapps.com?admin=dashboard` for analytics, exports, and custom SQL queries.
 
 ## 🎯 Usage Examples
 
@@ -339,35 +299,11 @@ print(vsc.get_index("{schema}.ucx_documentation_vector").describe())
 
 ## 🔧 Development
 
-### **Local Setup**
-```bash
-python -m venv .venv
-source .venv/bin/activate  # Windows: .venv\Scripts\activate
-cd webapp
-pip install -r requirements.txt
-```
-
-Configure `webapp/config.yaml` and set credentials:
-```bash
-export DATABRICKS_HOST="https://your-workspace.cloud.databricks.com"
-export DATABRICKS_TOKEN="your-token"
-streamlit run app.py
-```
-
 ### **Updating the Agent**
-After modifying `02_build_agent_and_deploy/agent.py`:
+After modifying agent configuration or code:
 ```bash
 databricks jobs run-now --job-name "w02_build_agent_and_deploy"
 # Serving endpoint updates automatically
-```
-
-### **Testing Vector Retrieval**
-```python
-from databricks.vector_search.client import VectorSearchClient
-vsc = VectorSearchClient()
-index = vsc.get_index("{schema}.ucx_documentation_vector")
-results = index.similarity_search(query="How do I install UCX?", num_results=5)
-print(results)
 ```
 
 ## 🔗 Related Links
