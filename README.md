@@ -151,6 +151,8 @@ deployment:
   audit_debug: false
 ```
 
+**Note:** The `config.yaml` file can be used to customize text and settings related to your repository. For example, you can edit the agent's prompt, system messages, and other repository-specific configurations to tailor the assistant's behavior to your needs.
+
 #### **Step 7: Grant Permissions**
 Via Databricks UI, grant to App Service Principal (`{target}-{bundle_name}`, e.g., `dev-ucx-assistant`):
 - **Model Endpoint**: Serving → Your endpoint → Permissions → Grant "CAN QUERY"
