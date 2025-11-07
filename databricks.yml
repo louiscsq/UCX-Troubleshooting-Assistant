@@ -11,10 +11,19 @@ variables:
     default: "databrickslabs/ucx"
   vector_search_endpoint:
     description: "Vector Search Endpoint to use for vector search"
-    default: "btafur_vector_search"
+    default: "ucx_vector_search"
+  catalog_name:
+    description: "Catalog name"
+    default: "ucx_asst_catalog"
+  schema_name:
+    description: "Schema name"
+    default: "default"
   schema:
     description: "Schema to use for the UCX Assistant"
-    default: "btafur.default"
+    default: "${var.catalog_name}.${var.schema_name}"
+  volume_name:
+    description: "Volume name for PDF storage"
+    default: "pdf_sources"
   #Only update below if you want to change specific table names.
   summarising_endpoint:
     description: "Foundational LLM endpoint to use for summarising the codebase"
@@ -28,6 +37,9 @@ variables:
   table_documentation:
     description: "Table to save documentation information and generate vector store in catalog.schema.table format"
     default: "${var.schema}.ucx_documentation"
+  table_pdf_errors:
+    description: "Table to save PDF UCX errors and resolutions in catalog.schema.table format"
+    default: "${var.schema}.ucx_pdf_errors"
   uc_agent_model:
     description: "Model location in Unity Catalog in catalog.schema.table format"
     default: "${var.schema}.ucx_agent"
@@ -35,7 +47,7 @@ variables:
 targets:
   dev:
     workspace:
-      host: https://adb-984752964297111.11.azuredatabricks.net/
+      host: https://adb-3003174702891824.4.azuredatabricks.net/
     default: true
 
 
