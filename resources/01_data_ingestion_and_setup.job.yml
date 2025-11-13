@@ -16,12 +16,30 @@ resources:
           default: "${var.table_codebase}"
         - name: "table_documentation"
           default: "${var.table_documentation}"
+        - name: "table_pdf_errors"
+          default: "${var.table_pdf_errors}"
+        - name: "catalog_name"
+          default: "${var.catalog_name}"
+        - name: "schema_name"
+          default: "${var.schema_name}"
+        - name: "volume_name"
+          default: "${var.volume_name}"
+        - name: "pdf_volume_path"
+          default: "/Volumes/${var.catalog_name}/${var.schema_name}/${var.volume_name}/ucx_errors.pdf"
         - name: "github_token"
           default: ""
         - name: "vector_search_endpoint"
           default: "${var.vector_search_endpoint}"
 
       tasks:
+        - task_key: setup_volume_and_pdf
+          notebook_task:
+            notebook_path: "../01_data_ingestion_and_setup/setup_volume_and_pdf.py"
+            base_parameters:
+              catalog_name: "${var.catalog_name}"
+              schema_name: "${var.schema_name}"
+              volume_name: "${var.volume_name}"
+
         - task_key: ingest_documentation
           notebook_task:
             notebook_path: "../01_data_ingestion_and_setup/ingest_documentation.py"
@@ -40,6 +58,7 @@ resources:
           depends_on:
             - task_key: ingest_codebase
             - task_key: ingest_documentation
+            - task_key: ingest_pdf
         
         - task_key: create_vector_documentation
           notebook_task:
