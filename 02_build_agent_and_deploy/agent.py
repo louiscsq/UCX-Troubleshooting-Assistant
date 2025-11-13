@@ -152,7 +152,10 @@ VECTOR_SEARCH_TOOLS.append(
     tool_name=docs_tool_config.get("name", "docs_retriever"),
     doc_uri="file_url",
     tool_description=docs_tool_config.get("description", "Retrieves documentation"),
-    num_results=docs_tool_config.get("num_results", 10)
+    num_results=docs_tool_config.get("num_results", 10),
+    dynamic_filter=False,  # Disable filter parameters - prevents LLM from passing type/doc_type filters
+    filters=None,  # No predefined filters
+    columns=["chunk_id", "embed_input", "file_url"]  # Only return these columns
   )
 )
 
@@ -163,12 +166,27 @@ VECTOR_SEARCH_TOOLS.append(
     tool_name=codebase_tool_config.get("name", "codebase_retriever"),
     doc_uri="file_url",
     tool_description=codebase_tool_config.get("description", "Retrieves source code"),
-    num_results=codebase_tool_config.get("num_results", 8)
+    num_results=codebase_tool_config.get("num_results", 8),
+    dynamic_filter=False,  # Disable filter parameters - prevents LLM from passing filters
+    filters=None,  # No predefined filters
+    columns=["chunk_id", "embed_input", "file_url"]  # Only return these columns
   )
 )
 
 for vs_tool in VECTOR_SEARCH_TOOLS:
-    TOOL_INFOS.append(create_tool_info(vs_tool.tool, vs_tool.execute))
+    # Workaround: Manually remove 'filters' parameter from tool spec to prevent LLM from passing it
+    tool_spec = vs_tool.tool
+    if 'function' in tool_spec and 'parameters' in tool_spec['function']:
+        properties = tool_spec['function']['parameters'].get('properties', {})
+        if 'filters' in properties:
+            print(f"Removing 'filters' parameter from {vs_tool.tool_name} tool spec")
+            del properties['filters']
+            # Also remove from required list if present
+            required = tool_spec['function']['parameters'].get('required', [])
+            if 'filters' in required:
+                required.remove('filters')
+    
+    TOOL_INFOS.append(create_tool_info(tool_spec, vs_tool.execute))
 
 
 class ToolCallingAgent(ResponsesAgent):
@@ -214,11 +232,42 @@ class ToolCallingAgent(ResponsesAgent):
     ) -> ResponsesAgentStreamEvent:
         """
         Execute tool calls, add them to the running message history, and return a ResponsesStreamEvent w/ tool output
+        
+        Workaround for MLflow bug: When multiple parallel tool calls occur, MLflow concatenates
+        their arguments into a single string. This method parses all JSON objects and executes
+        the tool multiple times, combining the results.
         """
-        args = json.loads(tool_call["arguments"])
-        result = str(self.execute_tool(tool_name=tool_call["name"], args=args))
+        args_str = tool_call["arguments"]
+        all_args = []
+        
+        # Parse all JSON objects from the (possibly concatenated) arguments string
+        decoder = json.JSONDecoder()
+        idx = 0
+        while idx < len(args_str):
+            args_str_trimmed = args_str[idx:].lstrip()
+            if not args_str_trimmed:
+                break
+            try:
+                args, end_idx = decoder.raw_decode(args_str_trimmed)
+                all_args.append(args)
+                idx += len(args_str[idx:]) - len(args_str_trimmed) + end_idx
+            except json.JSONDecodeError:
+                break
+        
+        # If we didn't parse any valid JSON, try standard parsing (will raise appropriate error)
+        if not all_args:
+            all_args = [json.loads(args_str)]
+        
+        # Execute the tool for each set of arguments and combine results
+        results = []
+        for args in all_args:
+            result = str(self.execute_tool(tool_name=tool_call["name"], args=args))
+            results.append(result)
+        
+        # Combine all results
+        combined_result = "\n\n---\n\n".join(results) if len(results) > 1 else results[0]
 
-        tool_call_output = self.create_function_call_output_item(tool_call["call_id"], result)
+        tool_call_output = self.create_function_call_output_item(tool_call["call_id"], combined_result)
         messages.append(tool_call_output)
         return ResponsesAgentStreamEvent(type="response.output_item.done", item=tool_call_output)
 

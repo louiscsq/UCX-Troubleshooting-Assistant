@@ -1,0 +1,10 @@
+targets:
+  dev-ucx:
+    default: true
+    workspace:
+      host: https://adb-984752964297111.11.azuredatabricks.net/
+  
+  prod-ucx:
+    workspace:
+      host: https://adb-984752964297111.11.azuredatabricks.net/
+

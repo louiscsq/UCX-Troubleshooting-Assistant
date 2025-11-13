@@ -4,7 +4,9 @@ bundle:
 include:
   - resources/*.yml
   - resources/*/*.yml
+  - targets/*.yml
 
+# Default variables. Do not change here. Update in targets/*.yml files.
 variables:
   config_file:
     description: "Path to config file within webapp/"
@@ -14,10 +16,10 @@ variables:
     default: "databrickslabs/ucx"
   vector_search_endpoint:
     description: "Vector Search Endpoint to use for vector search"
-    default: "btafur_vector_search"
+    default: "one-env-shared-endpoint-10"
   schema:
     description: "Schema to use for the Assistant"
-    default: "testcatalogv2.default"
+    default: "btafur.repo_assistants"
   project_prefix:
     description: "Prefix for resources (ucx, lakebridge, etc.)"
     default: "ucx"
@@ -37,15 +39,4 @@ variables:
   uc_agent_model:
     description: "Model location in Unity Catalog in catalog.schema.table format"
     default: "${var.schema}.${var.project_prefix}_agent"
-
-targets:
-  dev:
-    workspace:
-      host: https://adb-3409616956509341.1.azuredatabricks.net
-    default: true
-
-
-  prod:
-    workspace:
-      host: https://adb-3409616956509341.1.azuredatabricks.net
       

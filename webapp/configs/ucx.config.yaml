@@ -136,7 +136,7 @@ evaluation:
       expected_response: "UCX cannot migrate from external DELTA tabls to managed. It has other different strategies. External DELTA tables are migrated from external to external."
 
 # Deployment Configuration (used by Databricks Apps and webapp)
-# These values can be overridden by environment variables:
+# These values can be overridden by environment variables in app.yaml:
 #   - SERVING_ENDPOINT overrides serving_endpoint
 #   - AUDIT_TABLE overrides audit_table  
 #   - AUDIT_DEBUG overrides audit_debug

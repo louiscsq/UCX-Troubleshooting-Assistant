@@ -36,6 +36,9 @@ Thumbs.db
 **/.git/
 .gitignore
 
+# But ensure app.yaml is NOT ignored (negative pattern)
+!webapp/app.yaml
+
 # Large data files (but keep audit logs - they're small and important)
 *.parquet
 *.csv

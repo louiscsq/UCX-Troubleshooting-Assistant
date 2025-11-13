@@ -55,6 +55,9 @@ logs/
 # Databricks
 .databricks/
 
+# Note: webapp/app.yaml is tracked in git as a template
+# deploy.sh overwrites it before deployment with project-specific config
+
 # Streamlit
 .streamlit/
 
