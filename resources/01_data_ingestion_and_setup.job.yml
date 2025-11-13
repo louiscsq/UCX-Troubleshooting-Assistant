@@ -18,10 +18,8 @@ resources:
           default: "${var.table_documentation}"
         - name: "table_pdf_errors"
           default: "${var.table_pdf_errors}"
-        - name: "catalog_name"
-          default: "${var.catalog_name}"
-        - name: "schema_name"
-          default: "${var.schema_name}"
+        - name: "schema"
+          default: "${var.schema}"
         - name: "volume_name"
           default: "${var.volume_name}"
         - name: "pdf_volume_path"
@@ -35,10 +33,6 @@ resources:
         - task_key: setup_volume_and_pdf
           notebook_task:
             notebook_path: "../01_data_ingestion_and_setup/setup_volume_and_pdf.py"
-            base_parameters:
-              catalog_name: "${var.catalog_name}"
-              schema_name: "${var.schema_name}"
-              volume_name: "${var.volume_name}"
 
         - task_key: ingest_documentation
           notebook_task:

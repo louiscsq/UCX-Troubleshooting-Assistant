@@ -16,29 +16,17 @@ variables:
     default: "databrickslabs/ucx"
   vector_search_endpoint:
     description: "Vector Search Endpoint to use for vector search"
-<<<<<<< HEAD
     default: "one-env-shared-endpoint-10"
   schema:
     description: "Schema to use for the Assistant"
-    default: "btafur.repo_assistants"
+    default: "repo_assistants.default"
   project_prefix:
     description: "Prefix for resources (ucx, lakebridge, etc.)"
     default: "ucx"
-=======
-    default: "ucx_vector_search"
-  catalog_name:
-    description: "Catalog name"
-    default: "ucx_asst_catalog"
-  schema_name:
-    description: "Schema name"
-    default: "default"
-  schema:
-    description: "Schema to use for the UCX Assistant"
-    default: "${var.catalog_name}.${var.schema_name}"
   volume_name:
     description: "Volume name for PDF storage"
     default: "pdf_sources"
->>>>>>> 71b5075966e5f9b1bab8a5a4eab1a5ffe68f0e01
+    
   #Only update below if you want to change specific table names.
   summarising_endpoint:
     description: "Foundational LLM endpoint to use for summarising the codebase"
@@ -51,29 +39,11 @@ variables:
     default: "${var.schema}.${var.project_prefix}_codebase"
   table_documentation:
     description: "Table to save documentation information and generate vector store in catalog.schema.table format"
-<<<<<<< HEAD
     default: "${var.schema}.${var.project_prefix}_documentation"
   uc_agent_model:
     description: "Model location in Unity Catalog in catalog.schema.table format"
     default: "${var.schema}.${var.project_prefix}_agent"
-=======
-    default: "${var.schema}.ucx_documentation"
   table_pdf_errors:
     description: "Table to save PDF UCX errors and resolutions in catalog.schema.table format"
     default: "${var.schema}.ucx_pdf_errors"
-  uc_agent_model:
-    description: "Model location in Unity Catalog in catalog.schema.table format"
-    default: "${var.schema}.ucx_agent"
-
-targets:
-  dev:
-    workspace:
-      host: https://adb-3003174702891824.4.azuredatabricks.net/
-    default: true
-
-
-  prod:
-    workspace:
-      host: https://adb-984752964297111.11.azuredatabricks.net/
->>>>>>> 71b5075966e5f9b1bab8a5a4eab1a5ffe68f0e01
       
