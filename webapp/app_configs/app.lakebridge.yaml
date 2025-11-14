@@ -9,6 +9,3 @@ env:
     value: "false"
   - name: CONFIG_FILE
     value: "configs/lakebridge.config.yaml"
-  - name: SERVING_ENDPOINT
-    value: "agents_btafur-repo_assistants-lakebridge_agent"
-

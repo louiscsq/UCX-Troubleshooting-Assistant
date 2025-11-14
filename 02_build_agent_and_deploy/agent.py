@@ -144,6 +144,7 @@ VECTOR_SEARCH_TOOLS = []
 # Vector search indexes are now loaded from the agent config
 DOCUMENTATION_INDEX = VECTOR_SEARCH_CONFIG.get("documentation_index", "main.default.assistant_documentation_vector")
 CODEBASE_INDEX = VECTOR_SEARCH_CONFIG.get("codebase_index", "main.default.assistant_codebase_vector")
+INTERNAL_DOCUMENTS_INDEX = VECTOR_SEARCH_CONFIG.get("internal_documents_index", None)
 
 docs_tool_config = TOOL_CONFIG.get("docs_retriever", {})
 VECTOR_SEARCH_TOOLS.append(
@@ -172,6 +173,22 @@ VECTOR_SEARCH_TOOLS.append(
     columns=["chunk_id", "embed_input", "file_url"]  # Only return these columns
   )
 )
+
+# Add internal documents retriever if index is configured
+if INTERNAL_DOCUMENTS_INDEX:
+    internal_docs_tool_config = TOOL_CONFIG.get("internal_docs_retriever", {})
+    VECTOR_SEARCH_TOOLS.append(
+      VectorSearchRetrieverTool(
+        index_name=INTERNAL_DOCUMENTS_INDEX,
+        tool_name=internal_docs_tool_config.get("name", "internal_docs_retriever"),
+        doc_uri="file_url",
+        tool_description=internal_docs_tool_config.get("description", "Retrieves internal troubleshooting documents"),
+        num_results=internal_docs_tool_config.get("num_results", 10),
+        dynamic_filter=False,  # Disable filter parameters - prevents LLM from passing filters
+        filters=None,  # No predefined filters
+        columns=["chunk_id", "embed_input", "file_url"]  # Only return these columns
+      )
+    )
 
 for vs_tool in VECTOR_SEARCH_TOOLS:
     # Workaround: Manually remove 'filters' parameter from tool spec to prevent LLM from passing it

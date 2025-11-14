@@ -146,7 +146,7 @@ evaluation:
 #   - AUDIT_TABLE overrides audit_table  
 #   - AUDIT_DEBUG overrides audit_debug
 deployment:
-  serving_endpoint: "agents_testcatalogv2-default-lakebridge_agent"
-  audit_table: "testcatalogv2.default.lakebridge_chat_interactions"  # Format: catalog.schema.table
+  serving_endpoint: "agents_repo_assistants-default-lakebridge_agent"
+  audit_table: "repo_assistants.default.lakebridge_chat_interactions"  # Format: catalog.schema.table
   audit_debug: false
 
