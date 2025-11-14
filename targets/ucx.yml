@@ -1,10 +1,18 @@
 targets:
   dev-ucx:
     default: true
+    variables:
+      config_file: "configs/ucx.config.yaml"
+      repo: "databrickslabs/ucx"
+      project_prefix: "ucx"
     workspace:
-      host: https://adb-984752964297111.11.azuredatabricks.net/
+      host: https://fe-vm-vdm-serverless-0nfalq.cloud.databricks.com/
   
   prod-ucx:
+    variables:
+      config_file: "configs/ucx.config.yaml"
+      repo: "databrickslabs/ucx"
+      project_prefix: "ucx"
     workspace:
-      host: https://adb-984752964297111.11.azuredatabricks.net/
+      host: https://fe-vm-vdm-serverless-0nfalq.cloud.databricks.com/
 

@@ -35,10 +35,27 @@ echo "✓ Deployment complete"
 
 # Grant permissions to serving endpoint
 APP_NAME="${TARGET}-ucx-assistant"
-ENDPOINT_NAME=$(grep -A1 "SERVING_ENDPOINT" "$SOURCE" | grep "value:" | awk '{print $2}' | tr -d '"')
+
+# Try to get SERVING_ENDPOINT from app.yaml, fall back to config file
+ENDPOINT_NAME=$(grep -A1 "name: SERVING_ENDPOINT" "$SOURCE" | grep "value:" | awk '{print $2}' | tr -d '"')
+
+if [ -z "$ENDPOINT_NAME" ]; then
+    # Fall back to config file
+    CONFIG_FILE=$(grep -A1 "name: CONFIG_FILE" "$SOURCE" | grep "value:" | awk '{print $2}' | tr -d '"')
+    if [ -n "$CONFIG_FILE" ]; then
+        ENDPOINT_NAME=$(grep "^  serving_endpoint:" "webapp/$CONFIG_FILE" | awk '{print $2}' | tr -d '"')
+        echo "ℹ️  Using serving endpoint from config file: $ENDPOINT_NAME"
+    fi
+fi
+
 SP_ID=$(databricks apps get "$APP_NAME" ${PROFILE:+--profile $PROFILE} -o json | grep -o '"service_principal_client_id":"[^"]*"' | cut -d'"' -f4)
 
-# Get the actual endpoint ID
-ENDPOINT_ID=$(databricks serving-endpoints get "$ENDPOINT_NAME" ${PROFILE:+--profile $PROFILE} -o json | grep -o '"id":"[^"]*"' | head -1 | cut -d'"' -f4)
+# Get the actual endpoint ID (suppress error if endpoint doesn't exist yet)
+ENDPOINT_ID=$(databricks serving-endpoints get "$ENDPOINT_NAME" ${PROFILE:+--profile $PROFILE} -o json 2>/dev/null | grep -o '"id":"[^"]*"' | head -1 | cut -d'"' -f4)
 
-[ -n "$SP_ID" ] && [ -n "$ENDPOINT_ID" ] && databricks permissions update serving-endpoints "$ENDPOINT_ID" --json "{\"access_control_list\":[{\"service_principal_name\":\"$SP_ID\",\"permission_level\":\"CAN_QUERY\"}]}" ${PROFILE:+--profile $PROFILE} && echo "✓ Permissions granted"
+if [ -n "$SP_ID" ] && [ -n "$ENDPOINT_ID" ]; then
+    databricks permissions update serving-endpoints "$ENDPOINT_ID" --json "{\"access_control_list\":[{\"service_principal_name\":\"$SP_ID\",\"permission_level\":\"CAN_QUERY\"}]}" ${PROFILE:+--profile $PROFILE} && echo "✓ Permissions granted"
+elif [ -z "$ENDPOINT_ID" ]; then
+    echo "⚠ Warning: Endpoint '$ENDPOINT_NAME' does not exist yet. Skipping permissions setup."
+    echo "  Permissions will be configured after the agent endpoint is created."
+fi

@@ -5,7 +5,7 @@ targets:
       repo: "databrickslabs/lakebridge"
       project_prefix: "lakebridge"
     workspace:
-      host: https://adb-984752964297111.11.azuredatabricks.net/
+      host: https://fe-vm-vdm-serverless-0nfalq.cloud.databricks.com/
   
   prod-lakebridge:
     variables:
@@ -13,5 +13,5 @@ targets:
       repo: "databrickslabs/lakebridge"
       project_prefix: "lakebridge"
     workspace:
-      host: https://adb-984752964297111.11.azuredatabricks.net/
+      host: https://fe-vm-vdm-serverless-0nfalq.cloud.databricks.com/
 

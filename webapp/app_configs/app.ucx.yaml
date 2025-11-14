@@ -9,6 +9,4 @@ env:
     value: "false"
   - name: CONFIG_FILE
     value: "configs/ucx.config.yaml"
-  - name: SERVING_ENDPOINT
-    value: "agents_testcatalogv2-default-ucx_agent"
 

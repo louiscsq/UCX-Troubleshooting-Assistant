@@ -17,17 +17,23 @@ variables:
   vector_search_endpoint:
     description: "Vector Search Endpoint to use for vector search"
     default: "one-env-shared-endpoint-10"
-  schema:
+  catalog_name:
+    description: "Catalog name to use for the Assistant"
+    default: "repo_assistants"
+  schema_name:
     description: "Schema to use for the Assistant"
-    default: "repo_assistants.default"
+    default: "default"
   project_prefix:
     description: "Prefix for resources (ucx, lakebridge, etc.)"
     default: "ucx"
   volume_name:
-    description: "Volume name for PDF storage"
-    default: "pdf_sources"
+    description: "Volume name for document storage (supports PDF, DOCX, TXT, MD, HTML, etc.)"
+    default: "${var.project_prefix}_document_sources"
     
   #Only update below if you want to change specific table names.
+  schema:
+    description: "Full Schema path to use for the Assistant"
+    default: "${var.catalog_name}.${var.schema_name}"
   summarising_endpoint:
     description: "Foundational LLM endpoint to use for summarising the codebase"
     default: "databricks-claude-sonnet-4-5"
@@ -43,7 +49,7 @@ variables:
   uc_agent_model:
     description: "Model location in Unity Catalog in catalog.schema.table format"
     default: "${var.schema}.${var.project_prefix}_agent"
-  table_pdf_errors:
-    description: "Table to save PDF UCX errors and resolutions in catalog.schema.table format"
-    default: "${var.schema}.ucx_pdf_errors"
+  table_internal_documents:
+    description: "Table to save internal documents (PDF, DOCX, PPTX, images, etc.) parsed with ai_parse_document"
+    default: "${var.schema}.${var.project_prefix}_internal_documents"
       

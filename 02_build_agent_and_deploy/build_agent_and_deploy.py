@@ -22,6 +22,9 @@ table_documentation = dbutils.widgets.get("table_documentation")
 dbutils.widgets.text("table_codebase", "", "")
 table_codebase = dbutils.widgets.get("table_codebase")
 
+dbutils.widgets.text("table_internal_documents", "", "")
+table_internal_documents = dbutils.widgets.get("table_internal_documents")
+
 dbutils.widgets.text("config_file", "configs/ucx.config.yaml", "")
 config_file = dbutils.widgets.get("config_file")
 
@@ -44,6 +47,8 @@ if table_documentation:
     agent_config["vector_search"]["documentation_index"] = f"{table_documentation}_vector"
 if table_codebase:
     agent_config["vector_search"]["codebase_index"] = f"{table_codebase}_vector"
+if table_internal_documents:
+    agent_config["vector_search"]["internal_documents_index"] = f"{table_internal_documents}_vector"
 
 with open("agent_config.json", "w") as f:
     json.dump(agent_config, f)

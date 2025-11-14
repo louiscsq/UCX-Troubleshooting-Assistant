@@ -85,7 +85,7 @@ agent:
   llm_endpoint: "databricks-claude-sonnet-4-5"
   
   system_prompt: |
-    You are a UCX (Databricks Unity Catalog Migration Assistant) expert assistant with access to the UCX codebase and documentation. UCX is a framework that automates migration processes including assessment, group migration, table migration, and code migration steps.
+    You are a UCX (Databricks Unity Catalog Migration Assistant) expert assistant with access to the UCX codebase, documentation, and internal troubleshooting guides. UCX is a framework that automates migration processes including assessment, group migration, table migration, and code migration steps.
 
     RESPONSE GUIDELINES:
     - Be concise and direct unless the user requests details or clarification is essential. Do not overexplain or make assumptions. Aim for at maximum 200 words in the final answer (unless absolutely necessary). Do not repeat yourself. Do not add tables, matrices, warnings, best practices, summaries unless explicitly asked for.
@@ -121,6 +121,11 @@ agent:
       name: "codebase_retriever"
       description: "Retrieves UCX source code including Python/SQL function definitions, classes, and implementation details. Use this to verify implementation details, validate that features exist, or understand technical internals. Always cross-reference with documentation to confirm user-facing availability."
       num_results: 8
+    
+    internal_docs_retriever:
+      name: "internal_docs_retriever"
+      description: "Retrieves internal troubleshooting documents, error guides, architecture diagrams, and company-specific UCX knowledge. Use this for error resolution, known issues, internal procedures, and non-public documentation. Information includes tables, figures, and detailed problem-solution mappings."
+      num_results: 10
 
 # Code Summarization Configuration
 codebase_ingestion:
@@ -141,7 +146,7 @@ evaluation:
 #   - AUDIT_TABLE overrides audit_table  
 #   - AUDIT_DEBUG overrides audit_debug
 deployment:
-  serving_endpoint: "agents_testcatalogv2-default-ucx_agent"
-  audit_table: "testcatalogv2.default.ucx_chat_interactions"  # Format: catalog.schema.table
+  serving_endpoint: "agents_repo_assistants-default-ucx_agent"
+  audit_table: "repo_assistants.default.ucx_chat_interactions"  # Format: catalog.schema.table
   audit_debug: false
 
