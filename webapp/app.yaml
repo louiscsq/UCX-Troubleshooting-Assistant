@@ -9,3 +9,5 @@ env:
     value: "false"
   - name: CONFIG_FILE
     value: "configs/lakebridge.config.yaml"
+  - name: AUDIT_TABLE
+    value: "repo_assistants.default.lakebridge_chat_interactions"
