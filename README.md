@@ -10,11 +10,10 @@ An intelligent AI-powered assistant for troubleshooting repository-specific issu
 ## Quick Start
 
 1. Configure `databricks.yml` with workspace, vector search endpoint, and schema
-2. Deploy resources: `databricks bundle deploy`
+2. Deploy everything: `./deploy.sh dev-ucx`
 3. Run data ingestion: `databricks jobs run-now --job-name "w01_data_ingestion_and_setup"`
 4. Deploy agent: `databricks jobs run-now --job-name "w02_build_agent_and_deploy"`
 5. Customize config (optional): Edit `webapp/configs/ucx.config.yaml`
-6. Deploy app: `./deploy.sh dev-ucx`
 
 ## Features
 
@@ -141,15 +140,29 @@ targets:
 
 #### Step 3: Deploy Resources
 
-```bash
-# Deploy for default target (ucx-dev)
-databricks bundle deploy
+Use the `deploy.sh` script to deploy all resources (workflows and app):
 
-# Or specify target explicitly
-databricks bundle deploy -t ucx-dev
+```bash
+./deploy.sh <target> [profile]
+
+# Examples:
+./deploy.sh dev-ucx              # Deploy for dev-ucx target
+./deploy.sh dev-lakebridge       # Deploy for dev-lakebridge target  
+./deploy.sh dev-ucx myprofile    # With specific Databricks profile
 ```
 
-Deploys two workflows (data ingestion + agent deployment) and app configuration for the specified target.
+**What gets deployed:**
+- Two Databricks workflows:
+  - `w01_data_ingestion_and_setup` - Ingests code/docs and creates vector indexes
+  - `w02_build_agent_and_deploy` - Builds and deploys the MLflow agent
+- Streamlit web application
+
+**Automatic permissions:**
+- `USE CATALOG` on the catalog
+- `USE SCHEMA`, `SELECT`, `MODIFY` on the schema
+- `CAN QUERY` on the serving endpoint (after agent is deployed)
+
+**Note:** Target format must be `<environment>-<project>` (e.g., `dev-ucx`, `prod-lakebridge`)
 
 #### Step 4: Run Data Ingestion (~20 minutes)
 
@@ -191,29 +204,22 @@ Repository-specific configuration is in `webapp/configs/`. Edit to customize:
 
 Default config is at `webapp/configs/ucx.config.yaml`.
 
-#### Step 7: Deploy App
+#### Step 7: Access the Application
+
+Get your app URL:
 
 ```bash
-./deploy.sh <target> [profile]
-
-# Examples:
-./deploy.sh dev-ucx
-./deploy.sh dev-lakebridge myprofile
+databricks apps get dev-ucx-assistant
 ```
 
-The script automatically:
-- Configures the app with correct settings
-- Deploys the Databricks App
-- Grants USE CATALOG permission to service principal
-- Grants schema permissions (USE SCHEMA, SELECT, MODIFY)
-- Grants CAN QUERY permission on serving endpoint
+Open the app in your browser and start troubleshooting!
 
-Get app URL:
-```bash
-databricks apps get <target>-ucx-assistant
+**Access admin dashboard:** 
+```
+https://your-app-url.databricksapps.com?admin=dashboard
 ```
 
-Access admin dashboard: `https://your-app-url.databricksapps.com?admin=dashboard`
+**Re-deploying:** If you make changes to the app configuration, simply run `./deploy.sh dev-ucx` again.
 
 ## Project Structure
 
@@ -291,7 +297,9 @@ targets:
       schema: "catalog.schema"
 ```
 
-**In Steps 3-7:** Use `-t myrepo-dev` flag for all commands
+**In Steps 3-7:** 
+- For deployment: `./deploy.sh dev-myrepo`
+- For workflows: Use `-t myrepo-dev` flag
 
 ### Benefits
 - Single codebase for all assistants
@@ -351,13 +359,24 @@ databricks jobs run-now --job-name "w01_data_ingestion_and_setup" \
 
 After modifying agent configuration or code:
 ```bash
-# For default target
+# Rebuild and redeploy the agent
 databricks jobs run-now --job-name "w02_build_agent_and_deploy"
 
 # For specific target
 databricks jobs run-now --job-name "w02_build_agent_and_deploy" -t myrepo-dev
 
 # Serving endpoint updates automatically
+```
+
+### Updating the App
+
+After modifying the Streamlit app or configuration:
+```bash
+# Redeploy the app
+./deploy.sh dev-ucx
+
+# For specific target
+./deploy.sh dev-myrepo
 ```
 
 ## Related Links
