@@ -10,10 +10,11 @@ An intelligent AI-powered assistant for troubleshooting repository-specific issu
 ## Quick Start
 
 1. Configure `databricks.yml` with workspace, vector search endpoint, and schema
-2. Deploy everything: `./deploy.sh dev-ucx`
-3. Run data ingestion: `databricks jobs run-now --job-name "w01_data_ingestion_and_setup"`
-4. Deploy agent: `databricks jobs run-now --job-name "w02_build_agent_and_deploy"`
+2. Deploy resources: `./deploy.sh dev-ucx`
+3. Run data ingestion: `databricks jobs run-now --job-name "w01_data_ingestion_and_setup" -t dev-ucx --param github_token="your_github_token"`
+4. Run agent creation and deployment: `databricks jobs run-now --job-name "w02_build_agent_and_deploy" -t dev-ucx`
 5. Customize config (optional): Edit `webapp/configs/ucx.config.yaml`
+6. Redeploy with permissions: `./deploy.sh dev-ucx` (after agent endpoint is created)
 
 ## Features
 
@@ -112,7 +113,7 @@ variables:
 
 targets:
   # UCX Assistant
-  ucx-dev:
+  dev-ucx:
     workspace:
       host: https://your-workspace.cloud.databricks.com/  # ⚠️ UPDATE
     variables:
@@ -122,7 +123,7 @@ targets:
     default: true
   
   # Add more repositories as needed
-  # myrepo-dev:
+  # dev-myrepo:
   #   variables:
   #     repo: "myorg/myrepo"
   #     config_file: "configs/myrepo.config.yaml"
@@ -157,22 +158,27 @@ Use the `deploy.sh` script to deploy all resources (workflows and app):
   - `w02_build_agent_and_deploy` - Builds and deploys the MLflow agent
 - Streamlit web application
 
-**Automatic permissions:**
+**Automatic permissions (initial deployment):**
 - `USE CATALOG` on the catalog
 - `USE SCHEMA`, `SELECT`, `MODIFY` on the schema
-- `CAN QUERY` on the serving endpoint (after agent is deployed)
 
-**Note:** Target format must be `<environment>-<project>` (e.g., `dev-ucx`, `prod-lakebridge`)
+**Note:** 
+- Target format must be `<environment>-<project>` (e.g., `dev-ucx`, `prod-lakebridge`)
+- Run `./deploy.sh` again after Step 5 to grant serving endpoint permissions
 
 #### Step 4: Run Data Ingestion (~20 minutes)
 
 ```bash
 # With GitHub token (recommended to avoid rate limits)
 databricks jobs run-now --job-name "w01_data_ingestion_and_setup" \
-  --param github_token="your_github_token"
+  -t dev-ucx --param github_token="your_github_token"
 
 # Without token (may hit rate limits)
-databricks jobs run-now --job-name "w01_data_ingestion_and_setup"
+databricks jobs run-now --job-name "w01_data_ingestion_and_setup" -t dev-ucx
+
+# For specific target
+databricks jobs run-now --job-name "w01_data_ingestion_and_setup" \
+  -t dev-myrepo --param github_token="your_github_token"
 ```
 
 **What it does:**
@@ -184,14 +190,17 @@ databricks jobs run-now --job-name "w01_data_ingestion_and_setup"
 #### Step 5: Deploy Agent (~5-10 minutes)
 
 ```bash
-databricks jobs run-now --job-name "w02_build_agent_and_deploy"
+databricks jobs run-now --job-name "w02_build_agent_and_deploy" -t dev-ucx
+
+# For specific target
+databricks jobs run-now --job-name "w02_build_agent_and_deploy" -t dev-myrepo
 ```
 
 Creates MLflow agent with vector search tools and deploys to model serving endpoint: `agents_{schema}-{project_prefix}_agent`
 
 Wait for endpoint to be ready:
 ```bash
-databricks serving-endpoints get --name "agents_{schema}-{project_prefix}_agent"
+databricks serving-endpoints get --name "agents_{schema}-{project_prefix}_agent" -t dev-ucx
 ```
 
 #### Step 6: Customize Configuration (Optional)
@@ -204,7 +213,20 @@ Repository-specific configuration is in `webapp/configs/`. Edit to customize:
 
 Default config is at `webapp/configs/ucx.config.yaml`.
 
-#### Step 7: Access the Application
+#### Step 7: Grant Endpoint Permissions
+
+After the agent endpoint is deployed (Step 5), run the deploy script again to grant serving endpoint permissions:
+
+```bash
+./deploy.sh dev-ucx
+
+# For specific target
+./deploy.sh dev-myrepo
+```
+
+This grants the app's service principal `CAN QUERY` permission on the serving endpoint.
+
+#### Step 8: Access the Application
 
 Get your app URL:
 
@@ -287,7 +309,7 @@ cp webapp/configs/ucx.config.yaml webapp/configs/myrepo.config.yaml
 **In Step 2:** Add your repository target to `databricks.yml`
 ```yaml
 targets:
-  myrepo-dev:
+  dev-myrepo:
     workspace:
       host: https://your-workspace.cloud.databricks.com/
     variables:
@@ -297,9 +319,9 @@ targets:
       schema: "catalog.schema"
 ```
 
-**In Steps 3-7:** 
-- For deployment: `./deploy.sh dev-myrepo`
-- For workflows: Use `-t myrepo-dev` flag
+**In Steps 3-8:** 
+- For deployment: `./deploy.sh dev-myrepo` (run in Steps 3 and 7)
+- For workflows: Add `-t dev-myrepo` flag to all job commands
 
 ### Benefits
 - Single codebase for all assistants
@@ -333,7 +355,8 @@ targets:
 - Check workspace has access to Claude Sonnet 4.5 endpoint
 
 **App Can't Query Model Endpoint:**
-- Run `./deploy.sh` to automatically grant CAN QUERY permission
+- Ensure you ran `./deploy.sh` again after deploying the agent (Step 7)
+- The endpoint must exist before permissions can be granted
 - Or manually grant via: Serving → Your endpoint → Permissions
 
 **Audit Logging Fails:**
@@ -345,12 +368,12 @@ targets:
 Update with latest code/docs:
 ```bash
 databricks jobs run-now --job-name "w01_data_ingestion_and_setup" \
-  --param github_token="your_token"
+  -t dev-ucx --param github_token="your_token"
 # Agent automatically uses updated indexes, no rebuild needed
 
 # For specific target:
 databricks jobs run-now --job-name "w01_data_ingestion_and_setup" \
-  -t myrepo-dev --param github_token="your_token"
+  -t dev-myrepo --param github_token="your_token"
 ```
 
 ## Development
@@ -360,10 +383,10 @@ databricks jobs run-now --job-name "w01_data_ingestion_and_setup" \
 After modifying agent configuration or code:
 ```bash
 # Rebuild and redeploy the agent
-databricks jobs run-now --job-name "w02_build_agent_and_deploy"
+databricks jobs run-now --job-name "w02_build_agent_and_deploy" -t dev-ucx
 
 # For specific target
-databricks jobs run-now --job-name "w02_build_agent_and_deploy" -t myrepo-dev
+databricks jobs run-now --job-name "w02_build_agent_and_deploy" -t dev-myrepo
 
 # Serving endpoint updates automatically
 ```
