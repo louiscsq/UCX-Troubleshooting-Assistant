@@ -6,14 +6,8 @@ include:
   - resources/*/*.yml
   - targets/*.yml
 
-# Default variables. Do not change here. Update in targets/*.yml files.
 variables:
-  config_file:
-    description: "Path to config file within webapp/"
-    default: "configs/ucx.config.yaml"
-  repo:
-    description: "GitHub Repo to use as data source"
-    default: "databrickslabs/ucx"
+  # Update these 3 variables to your vector_search_endpoint, your catalog_name and your schema-name
   vector_search_endpoint:
     description: "Vector Search Endpoint to use for vector search"
     default: "one-env-shared-endpoint-10"
@@ -23,17 +17,23 @@ variables:
   schema_name:
     description: "Schema to use for the Assistant"
     default: "default"
+  # Default variables overriden in specific targets. Do not change here. Update in targets/*.yml files.
+  config_file:
+    description: "Path to config file within webapp/"
+    default: "configs/ucx.config.yaml"
+  repo:
+    description: "GitHub Repo to use as data source"
+    default: "databrickslabs/ucx"
   project_prefix:
     description: "Prefix for resources (ucx, lakebridge, etc.)"
     default: "ucx"
-  volume_name:
-    description: "Volume name for document storage (supports PDF, DOCX, TXT, MD, HTML, etc.)"
-    default: "${var.project_prefix}_document_sources"
-    
-  #Only update below if you want to change specific table names.
+  ## Only update below if you want to change specific naming conventions.
   schema:
     description: "Full Schema path to use for the Assistant"
     default: "${var.catalog_name}.${var.schema_name}"
+  volume_name:
+    description: "Volume name for document storage (supports PDF, DOCX, TXT, MD, HTML, etc.)"
+    default: "${var.project_prefix}_document_sources"
   summarising_endpoint:
     description: "Foundational LLM endpoint to use for summarising the codebase"
     default: "databricks-claude-sonnet-4-5"

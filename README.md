@@ -96,48 +96,77 @@ git clone <your-repo-url>
 cd UCX-Troubleshooting-Assistant
 ```
 
-#### Step 2: Configure databricks.yml
-Edit variables and add targets for each repository you want to support:
+#### Step 2: Configure databricks.yml and targets
+Edit `databricks.yml` variables and the target files in `targets/*.yml` for each repository you want to support.
+
+**`databricks.yml` (root bundle configuration):**
 ```yaml
+bundle:
+  name: ucx-assistant
+
+include:
+  - resources/*.yml
+  - resources/*/*.yml
+  - targets/*.yml
+
 variables:
+  # Update these 3 variables to your vector_search_endpoint, your catalog_name and your schema-name
+  vector_search_endpoint:
+    default: "one-env-shared-endpoint-10"
+  catalog_name:
+    default: "repo_assistants"
+  schema_name:
+    default: "default"
+
+  # Default variables overridden in specific targets. Do not change here. Update in targets/*.yml files.
   config_file:
     default: "configs/ucx.config.yaml"
   repo:
     default: "databrickslabs/ucx"
   project_prefix:
     default: "ucx"
-  vector_search_endpoint:
-    default: "your_vector_search_endpoint"  # ⚠️ REQUIRED
-  schema:
-    default: "catalog_name.schema_name"  # ⚠️ REQUIRED
 
+  # Derived and advanced variables
+  schema:
+    default: "${var.catalog_name}.${var.schema_name}"
+  volume_name:
+    default: "${var.project_prefix}_document_sources"
+  summarising_endpoint:
+    default: "databricks-claude-sonnet-4-5"
+  audit_table:
+    default: "${var.schema}.${var.project_prefix}_chat_interactions"
+  table_codebase:
+    default: "${var.schema}.${var.project_prefix}_codebase"
+  table_documentation:
+    default: "${var.schema}.${var.project_prefix}_documentation"
+  uc_agent_model:
+    default: "${var.schema}.${var.project_prefix}_agent"
+  table_internal_documents:
+    default: "${var.schema}.${var.project_prefix}_internal_documents"
+```
+
+**Target-specific configuration (`targets/ucx.yml`, `targets/lakebridge.yml`, etc.):**
+
+```yaml
 targets:
-  # UCX Assistant
   dev-ucx:
+    default: true
+    variables:
+      config_file: "configs/ucx.config.yaml"
+      repo: "databrickslabs/ucx"
+      project_prefix: "ucx"
     workspace:
       host: https://your-workspace.cloud.databricks.com/  # ⚠️ UPDATE
-    variables:
-      repo: "databrickslabs/ucx"
-      config_file: "configs/ucx.config.yaml"
-      project_prefix: "ucx"
-    default: true
-  
-  # Add more repositories as needed
-  # dev-myrepo:
-  #   variables:
-  #     repo: "myorg/myrepo"
-  #     config_file: "configs/myrepo.config.yaml"
-  #     project_prefix: "myrepo"
 ```
 
 **Key Variables:**
-- **`config_file`**: Path to config within `webapp/configs/` (for UI text, prompts)
-- **`repo`**: GitHub repository to ingest in `owner/repo` format
-- **`project_prefix`**: Prefix for resources (tables, models, endpoints) - unique per repository
-- **`vector_search_endpoint`**: Must exist before deployment (create via Databricks UI: Compute → Vector Search)
-- **`schema`**: Must be in `catalog.schema` format with existing catalog and schema
+- **`vector_search_endpoint`**: Name of the Vector Search endpoint to use (must exist before deployment)
+- **`catalog_name` / `schema_name`**: Combined into **`schema`** as `${catalog_name}.${schema_name}` and must refer to an existing Unity Catalog catalog and schema
+- **`config_file`**: Path to config within `webapp/configs/` (for UI text, prompts) – set defaults in `databricks.yml`, override per target in `targets/*.yml`
+- **`repo`**: GitHub repository to ingest in `owner/repo` format – typically overridden per target
+- **`project_prefix`**: Prefix for resources (tables, models, endpoints) – unique per repository and usually overridden per target
 
-**Note:** Each target can have different repositories, configs, and prefixes while sharing the same codebase.
+**Note:** Each target can have different repositories, configs, prefixes, and workspaces while sharing the same codebase.
 
 #### Step 3: Deploy Resources
 
