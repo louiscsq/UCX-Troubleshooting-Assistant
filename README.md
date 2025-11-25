@@ -19,26 +19,23 @@ An intelligent AI-powered assistant for troubleshooting repository-specific issu
 
 ## Features
 
-### Intelligent AI Agent with Vector Search
-- **Dual Vector Search Indexes**: Queries both codebase and documentation for comprehensive answers
-- **Smart Reasoning Process**: Agent explains its thinking and query strategy in real-time
-- **Source Attribution**: Provides links to relevant code and documentation
-- **Validation-First Approach**: Verifies all functionality exists in the codebase before confirming
-- **Multi-Repository Support**: Deploy separate assistants for different repositories using bundle targets
-
 ### Knowledge Sources
-- **Codebase Index**: Python and SQL code with AI-generated summaries of each function/class
-- **Documentation Index**: Chunked README files, user guides, and troubleshooting guides
-- **Real-time Updates**: Knowledge base can be refreshed by re-running ingestion workflows
+- **Codebase**: Python/SQL code with AI-generated summaries for each function and class
+- **Documentation**: README files, user guides, and troubleshooting docs from GitHub
+- **Internal Documents**: PDF, DOCX, PPTX, and images uploaded to a workspace folder
 
-### Advanced AI Capabilities
-- **Claude Sonnet 4.5**: State-of-the-art reasoning and code analysis
-- **Agentic Framework**: Built using MLflow's ResponsesAgent for robust tool calling
-- **Interactive Chat Interface**: Natural language troubleshooting with transparent thinking
+### AI Agent
+- **MLflow ResponsesAgent** with Claude Sonnet 4.5
+- **Vector search retriever tools** for codebase, documentation, and internal documents
+- **Source attribution** with links to relevant code and docs
 
-### Audit Logging with Delta Lake
-- **User Tracking**: Identifies users that interact with the assistant
-- **Audit Dashboard**: Real-time analytics for user interactions
+### Multi-Repository Support
+- Deploy separate assistants for different repositories using bundle targets
+- Shared codebase with per-repository configs, vector indexes, and endpoints
+
+### Audit & Analytics
+- **Delta Lake audit logging** for user interactions
+- **Admin dashboard** for usage analytics
 
 ## Architecture
 
