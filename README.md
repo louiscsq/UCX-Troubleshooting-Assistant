@@ -9,7 +9,7 @@ An intelligent AI-powered assistant for troubleshooting repository-specific issu
 
 ## Quick Start
 
-1. Configure `databricks.yml` with workspace, vector search endpoint, and schema
+1. Configure deployment settings in `databricks.yml` (or the appropriate target override in `targets/*.yml`) with workspace, vector search endpoint, and schema
 2. Deploy resources: `./deploy.sh dev-ucx`
 3. Run data ingestion: `databricks jobs run-now --job-name "w01_data_ingestion_and_setup" -t dev-ucx --param github_token="your_github_token"`
 4. Run agent creation and deployment: `databricks jobs run-now --job-name "w02_build_agent_and_deploy" -t dev-ucx`
