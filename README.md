@@ -133,15 +133,11 @@ Use the `deploy.sh` script to deploy all resources (workflows and app):
   - `w02_build_agent_and_deploy` - Builds and deploys the MLflow agent
 - Streamlit web application
 
-**Automatic permissions (initial deployment):**
-- `USE CATALOG` on the catalog
-- `USE SCHEMA`, `SELECT`, `MODIFY` on the schema
-
 **Note:** 
 - Target format must be `<environment>-<project>` (e.g., `dev-ucx`, `prod-lakebridge`)
 - Run `./deploy.sh` again after Step 5 to grant serving endpoint permissions
 
-#### Step 4: Run Data Ingestion (~20 minutes)
+#### Step 4: Run Data Ingestion (~30 minutes)
 
 ```bash
 # With GitHub token (recommended to avoid rate limits)
@@ -172,11 +168,6 @@ databricks jobs run-now --job-name "w02_build_agent_and_deploy" -t dev-myrepo
 ```
 
 Creates MLflow agent with vector search tools and deploys to model serving endpoint: `agents_{schema}-{project_prefix}_agent`
-
-Wait for endpoint to be ready:
-```bash
-databricks serving-endpoints get --name "agents_{schema}-{project_prefix}_agent" -t dev-ucx
-```
 
 #### Step 6: Customize Configuration (Optional)
 
@@ -281,18 +272,10 @@ cp webapp/configs/ucx.config.yaml webapp/configs/myrepo.config.yaml
 # - checklists and error messages
 ```
 
-**In Step 2:** Add your repository target to `databricks.yml`
-```yaml
-targets:
-  dev-myrepo:
-    workspace:
-      host: https://your-workspace.cloud.databricks.com/
-    variables:
-      repo: "myorg/myrepo"
-      config_file: "configs/myrepo.config.yaml"
-      project_prefix: "myrepo"
-      schema: "catalog.schema"
-```
+**In Step 2:** Add a new target file under `targets/` (for example `targets/myrepo.yml`) with:
+- A `targets:` block containing at least one target such as `dev-myrepo`
+- `workspace.host` pointing to your Databricks workspace
+- `variables.repo`, `variables.config_file`, and `variables.project_prefix` set for your repository
 
 **In Steps 3-8:** 
 - For deployment: `./deploy.sh dev-myrepo` (run in Steps 3 and 7)
