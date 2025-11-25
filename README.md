@@ -221,7 +221,7 @@ UCX-Troubleshooting-Assistant/
 │   ├── ingest_codebase.py
 │   ├── ingest_documentation.py
 │   ├── ingest_internal_documents.py
-│   ├── setup_volume_and_pdf.py
+│   ├── setup_document_volume.py
 │   └── create_vector.py
 │
 ├── 02_build_agent_and_deploy/         # Build and deploy MLflow agent

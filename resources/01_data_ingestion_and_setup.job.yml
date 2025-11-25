@@ -38,7 +38,7 @@ resources:
       tasks:
         - task_key: setup_volume
           notebook_task:
-            notebook_path: "../01_data_ingestion_and_setup/setup_volume_and_pdf.py"
+            notebook_path: "../01_data_ingestion_and_setup/setup_document_volume.py"
 
         - task_key: ingest_documentation
           notebook_task:
