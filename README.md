@@ -9,8 +9,8 @@ A framework for building intelligent AI-powered assistants that help users troub
 
 ## Currently Supported Repositories
 Assistants already available:
-- **[UCX](https://github.com/databrickslabs/ucx)** – Migrate to Unity Catalog
-- **[Lakebridge](https://github.com/databrickslabs/lakebridge)** – Migrate from other data platforms to Databricks
+- **<a href="https://github.com/databrickslabs/ucx" target="_blank">UCX</a>** – Migrate to Unity Catalog
+- **<a href="https://github.com/databrickslabs/lakebridge" target="_blank">Lakebridge</a>** – Migrate from other data platforms to Databricks
 
 ## Quick Start
 
@@ -385,12 +385,12 @@ After modifying the Streamlit app or configuration:
 
 ## Related Links
 
-- [UCX Repository](https://github.com/databrickslabs/ucx)
-- [UCX Documentation](https://databrickslabs.github.io/ucx/)
-- [Databricks Apps](https://docs.databricks.com/en/dev-tools/databricks-apps/)
-- [Unity Catalog](https://docs.databricks.com/en/data-governance/unity-catalog/)
-- [Vector Search](https://docs.databricks.com/en/generative-ai/vector-search.html)
-- [Agent Framework](https://docs.databricks.com/en/generative-ai/agent-framework/)
+- <a href="https://github.com/databrickslabs/ucx" target="_blank">UCX Repository</a>
+- <a href="https://databrickslabs.github.io/ucx/" target="_blank">UCX Documentation</a>
+- <a href="https://docs.databricks.com/en/dev-tools/databricks-apps/" target="_blank">Databricks Apps</a>
+- <a href="https://docs.databricks.com/en/data-governance/unity-catalog/" target="_blank">Unity Catalog</a>
+- <a href="https://docs.databricks.com/en/generative-ai/vector-search.html" target="_blank">Vector Search</a>
+- <a href="https://docs.databricks.com/en/generative-ai/agent-framework/" target="_blank">Agent Framework</a>
 
 ---
 
