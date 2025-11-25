@@ -9,7 +9,7 @@ An intelligent AI-powered assistant for troubleshooting repository-specific issu
 
 ## Currently Supported Repositories
 Assistants already available:
-- **[UCX (Unity Catalog Migration)](https://github.com/databrickslabs/ucx)** – Migrate to Unity Catalog
+- **[UCX](https://github.com/databrickslabs/ucx)** – Migrate to Unity Catalog
 - **[Lakebridge](https://github.com/databrickslabs/lakebridge)** – Migrate from other data platforms to Databricks
 
 ## Quick Start
