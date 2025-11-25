@@ -11,10 +11,11 @@ An intelligent AI-powered assistant for troubleshooting repository-specific issu
 
 1. Configure deployment settings in `databricks.yml` (or the appropriate target override in `targets/*.yml`) with workspace, vector search endpoint, and schema
 2. Deploy resources: `./deploy.sh dev-ucx`
-3. Run data ingestion: `databricks jobs run-now --job-name "w01_data_ingestion_and_setup" -t dev-ucx --param github_token="your_github_token"`
-4. Run agent creation and deployment: `databricks jobs run-now --job-name "w02_build_agent_and_deploy" -t dev-ucx`
-5. Customize config (optional): Edit `webapp/configs/ucx.config.yaml`
-6. Redeploy with permissions: `./deploy.sh dev-ucx` (after agent endpoint is created)
+3. (Optional) Upload internal docs (PDF, DOCX, PPTX, images, etc.) to `/Workspace/Shared/ucx` so they are ingested and indexed
+4. Run data ingestion: `databricks jobs run-now --job-name "w01_data_ingestion_and_setup" -t dev-ucx --param github_token="your_github_token"`
+5. Run agent creation and deployment: `databricks jobs run-now --job-name "w02_build_agent_and_deploy" -t dev-ucx`
+6. Customize config (optional): Edit `webapp/configs/ucx.config.yaml`
+7. Redeploy with permissions: `./deploy.sh dev-ucx` (after agent endpoint is created)
 
 ## Features
 
@@ -75,6 +76,7 @@ Troubleshooting Assistant
 - Delta Lake audit logging with privacy management
 - Interactive dashboard for analytics and reporting
 - Repository-specific configs in `webapp/configs/` (UI text, prompts, etc.)
+- Databricks App configs in `webapp/app_configs/` (map targets to config files via `CONFIG_FILE` env var)
 
 ## Installation & Deployment
 
@@ -135,9 +137,13 @@ Use the `deploy.sh` script to deploy all resources (workflows and app):
 
 **Note:** 
 - Target format must be `<environment>-<project>` (e.g., `dev-ucx`, `prod-lakebridge`)
-- Run `./deploy.sh` again after Step 5 to grant serving endpoint permissions
+- Run `./deploy.sh` again after Step 6 to grant serving endpoint permissions
 
-#### Step 4: Run Data Ingestion (~30 minutes)
+#### Step 4: (Optional) Upload Internal Documents
+
+Upload any internal documents (PDF, DOCX, PPTX, images, etc.) you want indexed to the workspace folder `/Workspace/Shared/{project_prefix}` (for example `/Workspace/Shared/ucx`). The ingestion workflow will copy them into the Unity Catalog volume and index them into an internal documents table and vector store.
+
+#### Step 5: Run Data Ingestion (~30 minutes)
 
 ```bash
 # With GitHub token (recommended to avoid rate limits)
@@ -157,8 +163,9 @@ databricks jobs run-now --job-name "w01_data_ingestion_and_setup" \
 2. Generates AI summaries using Claude Sonnet 4.5
 3. Downloads documentation
 4. Creates vector indexes: `{schema}.{project_prefix}_codebase_vector` and `{schema}.{project_prefix}_documentation_vector`
+5. (Optional) If you upload internal docs (PDF, DOCX, PPTX, images, etc.) to `/Workspace/Shared/{project_prefix}`, they are copied to the Unity Catalog volume and indexed into an internal documents table and vector store.
 
-#### Step 5: Deploy Agent (~5-10 minutes)
+#### Step 6: Deploy Agent (~5-10 minutes)
 
 ```bash
 databricks jobs run-now --job-name "w02_build_agent_and_deploy" -t dev-ucx
@@ -169,7 +176,7 @@ databricks jobs run-now --job-name "w02_build_agent_and_deploy" -t dev-myrepo
 
 Creates MLflow agent with vector search tools and deploys to model serving endpoint: `agents_{schema}-{project_prefix}_agent`
 
-#### Step 6: Customize Configuration (Optional)
+#### Step 7: Customize Configuration (Optional)
 
 Repository-specific configuration is in `webapp/configs/`. Edit to customize:
 - UI text and branding
@@ -179,9 +186,9 @@ Repository-specific configuration is in `webapp/configs/`. Edit to customize:
 
 Default config is at `webapp/configs/ucx.config.yaml`.
 
-#### Step 7: Grant Endpoint Permissions
+#### Step 8: Grant Endpoint Permissions
 
-After the agent endpoint is deployed (Step 5), run the deploy script again to grant serving endpoint permissions:
+After the agent endpoint is deployed (Step 6), run the deploy script again to grant serving endpoint permissions:
 
 ```bash
 ./deploy.sh dev-ucx
@@ -192,7 +199,7 @@ After the agent endpoint is deployed (Step 5), run the deploy script again to gr
 
 This grants the app's service principal `CAN QUERY` permission on the serving endpoint.
 
-#### Step 8: Access the Application
+#### Step 9: Access the Application
 
 Get your app URL:
 
@@ -216,6 +223,8 @@ UCX-Troubleshooting-Assistant/
 ├── 01_data_ingestion_and_setup/       # Ingest code/docs, create vector indexes
 │   ├── ingest_codebase.py
 │   ├── ingest_documentation.py
+│   ├── ingest_internal_documents.py
+│   ├── setup_volume_and_pdf.py
 │   └── create_vector.py
 │
 ├── 02_build_agent_and_deploy/         # Build and deploy MLflow agent
@@ -225,15 +234,22 @@ UCX-Troubleshooting-Assistant/
 ├── resources/                         # Workflow and app definitions
 │   ├── 01_data_ingestion_and_setup.job.yml
 │   ├── 02_build_agent_and_deploy.job.yml
-│   └── app_assistant.app.yml
+│   └── 03_repo_app.yml
 │
 ├── webapp/                            # Streamlit application
 │   ├── app.py                         # Main chat interface
 │   ├── configs/                       # Repository-specific configurations
 │   │   └── ucx.config.yaml           # UCX config (UI, prompts, etc.)
+│   ├── app_configs/                   # Databricks Apps configs (per project)
+│   │   ├── app.ucx.yaml              # UCX app config (sets CONFIG_FILE, etc.)
+│   │   └── app.lakebridge.yaml       # Lakebridge app config
 │   ├── audit_*.py                     # Audit system modules
 │   ├── model_serving_utils.py         # Model serving interface
 │   └── requirements.txt
+│
+├── targets/                           # Target overrides (per repository)
+│   ├── ucx.yml
+│   └── lakebridge.yml
 │
 └── databricks.yml                     # Bundle configuration
 ```
@@ -272,13 +288,18 @@ cp webapp/configs/ucx.config.yaml webapp/configs/myrepo.config.yaml
 # - checklists and error messages
 ```
 
+**App config for Databricks Apps:**  
+Create `webapp/app_configs/app.myrepo.yaml` based on `webapp/app_configs/app.ucx.yaml` or `app.lakebridge.yaml`, and update:
+- `env.CONFIG_FILE` to point to `configs/myrepo.config.yaml`
+- (Optional) any extra env vars you need such as `AUDIT_TABLE` or `SERVING_ENDPOINT`
+
 **In Step 2:** Add a new target file under `targets/` (for example `targets/myrepo.yml`) with:
 - A `targets:` block containing at least one target such as `dev-myrepo`
 - `workspace.host` pointing to your Databricks workspace
 - `variables.repo`, `variables.config_file`, and `variables.project_prefix` set for your repository
 
-**In Steps 3-8:** 
-- For deployment: `./deploy.sh dev-myrepo` (run in Steps 3 and 7)
+**In Steps 3-9:** 
+- For deployment: `./deploy.sh dev-myrepo` (run in Steps 3 and 8)
 - For workflows: Add `-t dev-myrepo` flag to all job commands
 
 ### Benefits
@@ -313,7 +334,7 @@ cp webapp/configs/ucx.config.yaml webapp/configs/myrepo.config.yaml
 - Check workspace has access to Claude Sonnet 4.5 endpoint
 
 **App Can't Query Model Endpoint:**
-- Ensure you ran `./deploy.sh` again after deploying the agent (Step 7)
+- Ensure you ran `./deploy.sh` again after deploying the agent (Step 8)
 - The endpoint must exist before permissions can be granted
 - Or manually grant via: Serving → Your endpoint → Permissions
 
