@@ -385,10 +385,10 @@ After modifying the Streamlit app or configuration:
 
 - [UCX Repository](https://github.com/databrickslabs/ucx)
 - [UCX Documentation](https://databrickslabs.github.io/ucx/)
-- [Databricks Apps](https://docs.databricks.com/dev-tools/apps/)
-- [Unity Catalog](https://docs.databricks.com/data-governance/unity-catalog/)
-- [Vector Search](https://docs.databricks.com/generative-ai/vector-search.html)
-- [Agent Framework](https://docs.databricks.com/generative-ai/agent-framework/)
+- [Databricks Apps](https://docs.databricks.com/en/dev-tools/databricks-apps/)
+- [Unity Catalog](https://docs.databricks.com/en/data-governance/unity-catalog/)
+- [Vector Search](https://docs.databricks.com/en/generative-ai/vector-search.html)
+- [Agent Framework](https://docs.databricks.com/en/generative-ai/agent-framework/)
 
 ---
 
