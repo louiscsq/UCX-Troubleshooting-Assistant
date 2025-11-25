@@ -1,6 +1,6 @@
 # Codebase Assistant Framework
 
-An intelligent AI-powered assistant for troubleshooting repository-specific issues. Built with Streamlit, powered by Claude Sonnet 4.5, and enhanced with vector search over codebases and documentation. Configured by default for Unity Catalog Migration (UCX) but easily adaptable to any GitHub repository.
+A framework for building intelligent AI-powered assistants that help users troubleshoot issues and learn how to use any project hosted in GitHub. Powered by Claude Sonnet 4.5 with RAG over codebases, documentation, and internal documents. Pre-configured for UCX and Lakebridge, easily adaptable to other GitHub repositories.
 
 <p align="center">
   <img src="https://github.com/databrickslabs/ucx/raw/main/docs/ucx/static/img/logo.svg" width="200" alt="UCX Logo"><br>
