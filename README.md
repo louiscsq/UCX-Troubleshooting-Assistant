@@ -1,11 +1,16 @@
-# Repository Troubleshooting Assistant
+# Codebase Assistant Framework
 
 An intelligent AI-powered assistant for troubleshooting repository-specific issues. Built with Streamlit, powered by Claude Sonnet 4.5, and enhanced with vector search over codebases and documentation. Configured by default for Unity Catalog Migration (UCX) but easily adaptable to any GitHub repository.
 
 <p align="center">
   <img src="https://github.com/databrickslabs/ucx/raw/main/docs/ucx/static/img/logo.svg" width="200" alt="UCX Logo"><br>
-    <b>🚀 UCX Troubleshooting Assistant</b>
+    <b>🚀 Codebase Assistant Framework</b>
 </p>
+
+## Currently Supported Repositories
+Assistants already available:
+- **[UCX (Unity Catalog Migration)](https://github.com/databrickslabs/ucx)** – Migrate to Unity Catalog
+- **[Lakebridge](https://github.com/databrickslabs/lakebridge)** – Migrate from other data platforms to Databricks
 
 ## Quick Start
 
