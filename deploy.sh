@@ -85,7 +85,7 @@ if [ -n "$SP_ID" ]; then
             
             # Grant READ and WRITE permissions on schema
             echo "Granting READ and WRITE on schema $CATALOG.$SCHEMA to service principal..."
-            databricks grants update schema "$CATALOG.$SCHEMA" --json "{\"changes\":[{\"principal\":\"$SP_ID\",\"add\":[\"USE_SCHEMA\",\"SELECT\",\"MODIFY\"]}]}" ${PROFILE:+--profile $PROFILE} && echo "✓ Schema permissions granted on $CATALOG.$SCHEMA"
+            databricks grants update schema "$CATALOG.$SCHEMA" --json "{\"changes\":[{\"principal\":\"$SP_ID\",\"add\":[\"USE_SCHEMA\",\"SELECT\",\"MODIFY\", \"CREATE TABLE\"]}]}" ${PROFILE:+--profile $PROFILE} && echo "✓ Schema permissions granted on $CATALOG.$SCHEMA"
         fi
     fi
 fi
