@@ -54,7 +54,7 @@ $CMD
 echo "✓ Deployment complete"
 
 # Grant permissions to serving endpoint
-APP_NAME="${TARGET}-ucx-assistant"
+APP_NAME="${TARGET}-repo-assistant"
 
 # Try to get SERVING_ENDPOINT from app.yaml, fall back to config file
 ENDPOINT_NAME=$(grep -A1 "name: SERVING_ENDPOINT" "$SOURCE" | grep "value:" | awk '{print $2}' | tr -d '"')
