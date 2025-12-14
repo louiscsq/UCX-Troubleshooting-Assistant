@@ -27,6 +27,7 @@ Follow the general deployment guide below for comprehensive instructions, or use
 5. Run agent creation and deployment: `databricks jobs run-now --job-name "w02_build_agent_and_deploy" -t dev-ucx`
 6. Customize config (optional): Edit `webapp/configs/ucx.config.yaml`
 7. Redeploy with permissions: `./deploy.sh dev-ucx` (after agent endpoint is created)
+8. Start the app: `databricks bundle run app_assistant -t dev-ucx`
 
 ## Features
 
@@ -207,7 +208,23 @@ After the agent endpoint is deployed (Step 6), run the deploy script again to gr
 
 This grants the app's service principal `CAN QUERY` permission on the serving endpoint.
 
-#### Step 9: Access the Application
+#### Step 9: Start the App
+
+Now that the agent endpoint is deployed and permissions are granted, start the Streamlit application:
+
+```bash
+databricks bundle run app_assistant -t dev-ucx
+
+# For specific target
+databricks bundle run app_assistant -t dev-myrepo
+
+# With specific Databricks profile
+databricks bundle run app_assistant -t dev-ucx --profile myprofile
+```
+
+This command starts the application. The app will now be fully functional with access to the agent endpoint.
+
+#### Step 10: Access the Application
 
 Get your app URL:
 
@@ -222,7 +239,11 @@ Open the app in your browser and start troubleshooting!
 https://your-app-url.databricksapps.com?admin=dashboard
 ```
 
-**Re-deploying:** If you make changes to the app configuration, simply run `./deploy.sh dev-ucx` again.
+**Re-deploying:** If you make changes to the app configuration, redeploy and restart:
+```bash
+./deploy.sh dev-ucx
+databricks bundle run app_assistant -t dev-ucx
+```
 
 ## Project Structure
 
@@ -306,8 +327,9 @@ Create `webapp/app_configs/app.myrepo.yaml` based on `webapp/app_configs/app.ucx
 - `workspace.host` pointing to your Databricks workspace
 - `variables.repo`, `variables.config_file`, and `variables.project_prefix` set for your repository
 
-**In Steps 3-9:** 
+**In Steps 3-10:** 
 - For deployment: `./deploy.sh dev-myrepo` (run in Steps 3 and 8)
+- For starting app: `databricks bundle run app_assistant -t dev-myrepo` (run in Step 9)
 - For workflows: Add `-t dev-myrepo` flag to all job commands
 
 ### Benefits
@@ -382,11 +404,13 @@ databricks jobs run-now --job-name "w02_build_agent_and_deploy" -t dev-myrepo
 
 After modifying the Streamlit app or configuration:
 ```bash
-# Redeploy the app
+# Redeploy and restart the app
 ./deploy.sh dev-ucx
+databricks bundle run app_assistant -t dev-ucx
 
 # For specific target
 ./deploy.sh dev-myrepo
+databricks bundle run app_assistant -t dev-myrepo
 ```
 
 ## Related Links

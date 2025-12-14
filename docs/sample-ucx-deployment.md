@@ -37,6 +37,9 @@ variables:
 
 ```bash
 ./deploy.sh dev-ucx
+
+# Or with a specific Databricks profile
+./deploy.sh dev-ucx myprofile
 ```
 
 This deploys:
@@ -69,11 +72,25 @@ Takes ~5-10 minutes. Creates and deploys the MLflow agent.
 
 ```bash
 ./deploy.sh dev-ucx
+
+# Or with a specific Databricks profile
+./deploy.sh dev-ucx myprofile
 ```
 
 Grants app permissions to query the serving endpoint and write audit logs.
 
-### 8. Access App
+### 8. Start the App
+
+```bash
+databricks bundle run app_assistant -t dev-ucx
+
+# Or with a specific Databricks profile
+databricks bundle run app_assistant -t dev-ucx --profile myprofile
+```
+
+This command starts the Streamlit application. Now that the agent endpoint is deployed and permissions are granted, the app will be fully functional.
+
+### 9. Access App
 
 ```bash
 databricks apps get dev-ucx-repo-assistant
@@ -85,10 +102,15 @@ Use the URL from the output to access your assistant.
 
 Customize UI, prompts, and behavior by editing `webapp/configs/ucx.config.yaml`.
 
-After changes, redeploy:
+After changes, redeploy and restart:
 
 ```bash
 ./deploy.sh dev-ucx
+databricks bundle run app_assistant -t dev-ucx
+
+# Or with a specific Databricks profile
+./deploy.sh dev-ucx myprofile
+databricks bundle run app_assistant -t dev-ucx --profile myprofile
 ```
 
 ## Admin Dashboard
