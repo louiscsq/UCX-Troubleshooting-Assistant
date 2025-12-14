@@ -6,7 +6,7 @@ targets:
       repo: "databrickslabs/ucx"
       project_prefix: "ucx"
     workspace:
-      host: https://fe-vm-vdm-serverless-0nfalq.cloud.databricks.com/
+      host: ${var.workspace_host}
   
   prod-ucx:
     variables:
@@ -14,5 +14,5 @@ targets:
       repo: "databrickslabs/ucx"
       project_prefix: "ucx"
     workspace:
-      host: https://fe-vm-vdm-serverless-0nfalq.cloud.databricks.com/
+      host: ${var.workspace_host}
 

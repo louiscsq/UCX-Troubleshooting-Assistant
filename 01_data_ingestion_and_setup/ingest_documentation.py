@@ -14,7 +14,6 @@ table_documentation = dbutils.widgets.get("table_documentation")
 
 dbutils.widgets.text("github_token", "", "")
 github_token = dbutils.widgets.get("github_token")
-print(f"GitHub Token: {github_token}")
 
 # COMMAND ----------
 

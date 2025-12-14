@@ -7,7 +7,10 @@ include:
   - targets/*.yml
 
 variables:
-  # Update these 3 variables to your vector_search_endpoint, your catalog_name and your schema-name
+  # Update these 4 variables to your workspace_host, vector_search_endpoint, catalog_name and schema-name
+  workspace_host:
+    description: "Databricks workspace URL"
+    default: "https://fe-vm-vdm-serverless-0nfalq.cloud.databricks.com/"
   vector_search_endpoint:
     description: "Vector Search Endpoint to use for vector search"
     default: "one-env-shared-endpoint-10"

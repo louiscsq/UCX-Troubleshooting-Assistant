@@ -157,7 +157,7 @@ print(f"{combined_df.count()} documents indexed")
 # COMMAND ----------
 
 # MAGIC %sql
-# MAGIC CREATE OR REPLACE TABLE IDENTIFIER(:table_codebase) AS 
+# MAGIC CREATE OR REPLACE TABLE IDENTIFIER(:table_codebase) USING DELTA AS 
 # MAGIC SELECT *, CONCAT(
 # MAGIC   definition, '\n\n', ai_query(
 # MAGIC      :summarising_endpoint, 
@@ -177,7 +177,7 @@ print(f"{combined_df.count()} documents indexed")
 # COMMAND ----------
 
 # MAGIC %sql
-# MAGIC CREATE OR REPLACE TABLE IDENTIFIER(:table_codebase) AS 
+# MAGIC CREATE OR REPLACE TABLE IDENTIFIER(:table_codebase) USING DELTA AS 
 # MAGIC SELECT *, CONCAT("https://github.com/search?q=repo:", :repo ,"+path:/", file_name, "&type=code") AS file_url FROM IDENTIFIER(:table_codebase)
 # MAGIC
 

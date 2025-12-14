@@ -206,6 +206,12 @@ for vs_tool in VECTOR_SEARCH_TOOLS:
     TOOL_INFOS.append(create_tool_info(tool_spec, vs_tool.execute))
 
 
+# Enable MLflow tracing BEFORE instantiating the agent
+# This must be called before creating the agent instance for tracing to work properly
+mlflow.tracing.enable()
+mlflow.openai.autolog()
+
+
 class ToolCallingAgent(ResponsesAgent):
     """
     Class representing a tool-calling Agent.
@@ -326,6 +332,6 @@ class ToolCallingAgent(ResponsesAgent):
         yield from self.call_and_run_tools(messages=messages)
 
 
-mlflow.openai.autolog()
+# Create agent instance (tracing already enabled above)
 AGENT = ToolCallingAgent(llm_endpoint=LLM_ENDPOINT_NAME, tools=TOOL_INFOS)
 mlflow.models.set_model(AGENT)

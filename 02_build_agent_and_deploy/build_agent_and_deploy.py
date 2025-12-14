@@ -4,7 +4,7 @@
 
 # COMMAND ----------
 
-# MAGIC %pip install -U -qqqq backoff databricks-openai uv databricks-agents mlflow-skinny[databricks] PyYAML
+# MAGIC %pip install -U -qqqq backoff databricks-openai uv databricks-agents>=1.2.0 mlflow>=3.1.0 PyYAML
 # MAGIC dbutils.library.restartPython()
 
 # COMMAND ----------
@@ -116,7 +116,10 @@ with mlflow.start_run():
         name="agent",
         python_model="agent.py",
         pip_requirements=[
-            "databricks-openai",
+            "mlflow>=3.1.0",  # Required for real-time tracing and mlflow.tracing.enable()
+            "databricks-agents>=1.2.0",  # Required for real-time tracing support
+            "databricks-openai>=0.3.0",
+            "openai>=1.0.0",  # Required for proper OpenAI SDK integration
             "backoff",
             f"databricks-connect=={get_distribution('databricks-connect').version}",
         ],

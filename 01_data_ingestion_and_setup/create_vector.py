@@ -1,5 +1,5 @@
 # Databricks notebook source
-# MAGIC %pip install -U -qqqq backoff databricks-openai uv databricks-agents mlflow-skinny[databricks] databricks-vectorsearch==0.55
+# MAGIC %pip install -U -qqqq backoff databricks-openai uv databricks-agents>=1.2.0 mlflow>=3.1.0 databricks-vectorsearch==0.55
 
 # COMMAND ----------
 

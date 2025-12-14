@@ -259,9 +259,3 @@ def submit_feedback(endpoint, request_id, rating):
         path=f"/serving-endpoints/{endpoint}/served-models/feedback/invocations",
         body=proxy_payload,
     )
-
-
-def endpoint_supports_feedback(endpoint_name):
-    w = WorkspaceClient()
-    endpoint = w.serving_endpoints.get(endpoint_name)
-    return "feedback" in [entity.name for entity in endpoint.config.served_entities]

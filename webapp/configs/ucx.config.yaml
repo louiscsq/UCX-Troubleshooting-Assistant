@@ -124,7 +124,7 @@ agent:
     
     internal_docs_retriever:
       name: "internal_docs_retriever"
-      description: "Retrieves internal troubleshooting documents, error guides, architecture diagrams, and company-specific UCX knowledge. Use this for error resolution, known issues, internal procedures, and non-public documentation. Information includes tables, figures, and detailed problem-solution mappings."
+      description: "Retrieves internal complementary documents, including installation guides, error guides, architecture diagrams, and company-specific UCX knowledge. Use this for error resolution, known issues, additional procedures, and non-public documentation. Information includes tables, figures, and detailed problem-solution mappings."
       num_results: 10
 
 # Code Summarization Configuration

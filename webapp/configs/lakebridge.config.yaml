@@ -103,10 +103,10 @@ agent:
       name: "codebase_retriever"
       description: "Retrieves Lakebridge source code including Python/SQL function definitions, classes, and implementation details. Use this to verify implementation details, validate that features exist, or understand technical internals. Always cross-reference with documentation to confirm user-facing availability."
       num_results: 8
-    
+      
     internal_docs_retriever:
       name: "internal_docs_retriever"
-      description: "Retrieves internal troubleshooting documents, error guides, architecture diagrams, and company-specific Lakebridge knowledge. Use this for error resolution, known issues, internal procedures, and non-public documentation. Information includes tables, figures, and detailed problem-solution mappings."
+      description: "Retrieves internal complementary documents, including installation guides, migration guides, FAQs, architecture diagrams, and company-specific Lakebridge knowledge. Use this for error resolution, known issues, additional migration procedures, and non-public documentation. Information includes tables, figures, and detailed problem-solution mappings."
       num_results: 10
 
 # Code Summarization Configuration
