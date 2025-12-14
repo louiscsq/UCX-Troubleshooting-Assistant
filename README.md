@@ -12,6 +12,12 @@ Assistants already available:
 - **<a href="https://github.com/databrickslabs/ucx" target="_blank">UCX</a>** – Migrate to Unity Catalog
 - **<a href="https://github.com/databrickslabs/lakebridge" target="_blank">Lakebridge</a>** – Migrate from other data platforms to Databricks
 
+**📘 Deployment Options:**
+
+Follow the general deployment guide below for comprehensive instructions, or use these simplified guides for quick deployment:
+- [Sample UCX Deployment Guide](docs/sample-ucx-deployment.md) – Quick step-by-step for UCX assistant
+- [Sample Lakebridge Deployment Guide](docs/sample-lakebridge-deployment.md) – Quick step-by-step for Lakebridge assistant
+
 ## Quick Start
 
 1. Configure deployment settings in `databricks.yml` (or the appropriate target override in `targets/*.yml`) with workspace, vector search endpoint, and schema
