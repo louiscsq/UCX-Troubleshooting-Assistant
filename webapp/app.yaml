@@ -1,4 +1,4 @@
-# Lakebridge Assistant - Databricks Apps configuration
+# UCX Assistant - Databricks Apps configuration
 command:
   - streamlit
   - run
@@ -8,6 +8,7 @@ env:
   - name: STREAMLIT_BROWSER_GATHER_USAGE_STATS
     value: "false"
   - name: CONFIG_FILE
-    value: "configs/lakebridge.config.yaml"
+    value: "configs/ucx.config.yaml"
+
   - name: AUDIT_TABLE
-    value: "repo_assistants.default.lakebridge_chat_interactions"
+    value: "repo_assistants.default.ucx_chat_interactions"
