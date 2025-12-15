@@ -10,5 +10,3 @@ env:
   - name: CONFIG_FILE
     value: "configs/ucx.config.yaml"
 
-  - name: AUDIT_TABLE
-    value: "repo_assistants.default.ucx_chat_interactions"

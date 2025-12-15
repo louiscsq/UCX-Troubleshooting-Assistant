@@ -1,45 +1,55 @@
 bundle:
-  name: ucx-assistant
+  name: repo-assistant
 
 include:
   - resources/*.yml
   - resources/*/*.yml
+  - targets/*.yml
 
 variables:
+  # Update these 3 variables to your vector_search_endpoint, your catalog_name and your schema-name
+  vector_search_endpoint:
+    description: "Vector Search Endpoint to use for vector search"
+    default: "one-env-shared-endpoint-10"
+  catalog_name:
+    description: "Catalog name to use for the Assistant"
+    default: "repo_assistants"
+  schema_name:
+    description: "Schema to use for the Assistant"
+    default: "default"
+  # Default variables overriden in specific targets. Do not change here. Update in targets/*.yml files.
+  config_file:
+    description: "Path to config file within webapp/"
+    default: "configs/ucx.config.yaml"
   repo:
     description: "GitHub Repo to use as data source"
     default: "databrickslabs/ucx"
-  vector_search_endpoint:
-    description: "Vector Search Endpoint to use for vector search"
-    default: "btafur_vector_search"
+  project_prefix:
+    description: "Prefix for resources (ucx, lakebridge, etc.)"
+    default: "ucx"
+  ## Only update below if you want to change specific naming conventions.
   schema:
-    description: "Schema to use for the UCX Assistant"
-    default: "testcatalogv2.default"
-  #Only update below if you want to change specific table names.
+    description: "Full Schema path to use for the Assistant"
+    default: "${var.catalog_name}.${var.schema_name}"
+  volume_name:
+    description: "Volume name for document storage (supports PDF, DOCX, TXT, MD, HTML, etc.)"
+    default: "${var.project_prefix}_document_sources"
   summarising_endpoint:
     description: "Foundational LLM endpoint to use for summarising the codebase"
     default: "databricks-claude-sonnet-4-5"
   audit_table:
     description: "Table name for chat interactions logs in catalog.schema.table format"
-    default: "${var.schema}.ucx_chat_interactions"
+    default: "${var.schema}.${var.project_prefix}_chat_interactions"
   table_codebase:
     description: "Table to save codebase information and generate vector store in catalog.schema.table format"
-    default: "${var.schema}.ucx_codebase"
+    default: "${var.schema}.${var.project_prefix}_codebase"
   table_documentation:
     description: "Table to save documentation information and generate vector store in catalog.schema.table format"
-    default: "${var.schema}.ucx_documentation"
+    default: "${var.schema}.${var.project_prefix}_documentation"
   uc_agent_model:
     description: "Model location in Unity Catalog in catalog.schema.table format"
-    default: "${var.schema}.ucx_agent"
-
-targets:
-  dev:
-    workspace:
-      host: https://adb-3409616956509341.1.azuredatabricks.net
-    default: true
-
-
-  prod:
-    workspace:
-      host: https://adb-3409616956509341.1.azuredatabricks.net
+    default: "${var.schema}.${var.project_prefix}_agent"
+  table_internal_documents:
+    description: "Table to save internal documents (PDF, DOCX, PPTX, images, etc.) parsed with ai_parse_document"
+    default: "${var.schema}.${var.project_prefix}_internal_documents"
       

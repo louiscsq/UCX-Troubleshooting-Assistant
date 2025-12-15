@@ -1,6 +1,0 @@
-resources:
-  apps:
-    app_assistant:
-      name: ${bundle.target}-${bundle.name}
-      description: "Troubleshooting Assistant"
-      source_code_path: ../webapp

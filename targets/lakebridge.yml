@@ -1,0 +1,17 @@
+targets:
+  dev-lakebridge:
+    variables:
+      config_file: "configs/lakebridge.config.yaml"
+      repo: "databrickslabs/lakebridge"
+      project_prefix: "lakebridge"
+    workspace:
+      host: https://fe-vm-vdm-serverless-0nfalq.cloud.databricks.com/
+  
+  prod-lakebridge:
+    variables:
+      config_file: "configs/lakebridge.config.yaml"
+      repo: "databrickslabs/lakebridge"
+      project_prefix: "lakebridge"
+    workspace:
+      host: https://fe-vm-vdm-serverless-0nfalq.cloud.databricks.com/
+

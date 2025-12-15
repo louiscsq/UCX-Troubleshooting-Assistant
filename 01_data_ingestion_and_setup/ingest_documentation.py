@@ -7,6 +7,7 @@
 dbutils.widgets.text("repo", "", "")
 repo = dbutils.widgets.get("repo")
 repo_url = f"https://github.com/{repo}"
+print(f"Repo URL: {repo_url}")
 
 dbutils.widgets.text("table_documentation", "", "")
 table_documentation = dbutils.widgets.get("table_documentation")

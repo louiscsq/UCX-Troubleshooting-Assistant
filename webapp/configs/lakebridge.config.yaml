@@ -1,0 +1,133 @@
+# Project Configuration
+# Edit this file to customize the troubleshooting assistant for different repositories
+
+# Project Identity
+project_name: "Lakebridge"
+
+# UI Text
+ui_title: "Lakebridge Troubleshooting Assistant"
+ui_tagline: "💡 **Lakebridge Troubleshooting Assistant** - Get help with DBSQL Migration issues, installation problems, and assessment errors. Describe your issue and I'll provide specific guidance!"
+chat_placeholder: "Describe your Lakebridge issue ..."
+
+# Sidebar
+sidebar_header: "Common Troubleshooting Examples"
+sidebar_installation_label: "📋 Installation Checklist"
+sidebar_installation_title: "Installation Checklist"
+sidebar_errors_label: "📚 Common Errors"
+sidebar_errors_title: "Common Lakebridge Errors"
+
+# PDF Settings
+pdf_filename_prefix: "Lakebridge_Response"
+pdf_title: "Lakebridge Troubleshooting Assistant Response"
+pdf_download_label: "Ready for customer documentation"
+
+# Checklists
+installation_checklist:
+  - "✓ Databricks workspace access confirmed (production, dev, or free trial)"
+  - "✓ Databricks CLI installed on the machine"
+  - "✓ Databricks CLI configured with OAuth, PAT, or Service Principal"
+  - "✓ CLI connectivity verified (databricks clusters list succeeds)"
+  - "✓ Python 3.10 to 3.13 installed and verified (python --version)"
+  - "✓ Java 11+ installed and verified (java -version)"
+  - "✓ Network access to GitHub confirmed"
+  - "✓ Network access to Maven Central confirmed"
+  - "✓ Network access to PyPI confirmed"
+  - "✓ (If applicable) All required resources whitelisted in restricted environments"
+  - "✓ (If applicable) Private repository configured for package hosting"
+
+
+# Common Errors
+errors:
+  python_version:
+    error: "Python version compatibility issues"
+    solution: "Upgrade to Python 3.10 to 3.13. Lakebridge requires modern Python features for proper operation."
+    details: "Check your machine's Python version and ensure it meets the minimum requirements."
+  
+  databricks_cli:
+    error: "Databricks CLI issues"
+    solution: "Update Databricks CLI to v0.213 or higher. Older versions may have compatibility issues."
+    details: "Run 'databricks version' to check current version and 'pip install --upgrade databricks-cli' to update."
+  
+  authentication:
+    error: "Authentication failures during Lakebridge operations"
+    solution: "Verify your authentication credentials. Use DATABRICKS_HOST and DATABRICKS_TOKEN environment variables or --profile flag."
+    details: "Check token validity and workspace permissions."
+  
+  ssl_certificate_not_found:
+    error: "[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: unable to get local issuer certificate"
+    solution: "All the root certificates must be aded as a reference to the PIP_CERT, REQUESTS_CA_BUNDLE, SSL_CERT_FILE, and CURL_CA_BUNDLE environment variables. These cannot be set at the session level as it needs to reach the virtual environment."
+    details: "This is caused by the Python version in the virtual environment missing the SSL certificate."
+  
+  ssl_certificate_noncritical_constraint:
+    error: "[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: Basic Constraints of CA cert not marked critical."
+    solution: "As a temporary fix, downgrade the Python version to 3.12. For a permanent fix, the IT team needs to use the most updated SSL root certificate."
+    details: "This error occurs as Python version 3.13 and above require stricter SSL configuration." 
+# Agent Configuration
+agent:
+  llm_endpoint: "databricks-claude-sonnet-4-5"
+  
+  system_prompt: |
+    You are a Lakebridge expert assistant with access to the Lakebridge codebase, documentation, and internal troubleshooting guides. Lakebridge is a comprehensive toolkit for SQL migration to Databricks, covering three main phases: Assessment (profiling and analyzing SQL workloads), Conversion (transpiling SQL using BladeBridge or Morpheus), and Reconciliation (validating migrated data).
+
+    RESPONSE GUIDELINES:
+    - Be concise and direct unless the user requests details or clarification is essential. Do not overexplain or make assumptions. Aim for at maximum 200 words in the final answer (unless absolutely necessary). Do not repeat yourself. Do not add tables, matrices, warnings, best practices, summaries unless explicitly asked for.
+    - Verify all functionality and commands exist in the codebase/documentation before confirming them
+    - If information is unavailable or uncertain, clearly state that you don't have enough information to answer this.
+
+    REASONING PROCESS:
+    - Before calling any tool, explain what information you're looking for and why
+    - After receiving tool results, analyze what you learned and determine if you need more information
+    - If you need to call multiple tools, explain your strategy first
+    - Synthesize information from multiple sources before providing your final answer
+
+    CRITICAL CONSIDERATIONS:
+    - Source platform differences: Lakebridge supports multiple SQL dialects and ETL tools (DataStage, Informatica, Netezza, Oracle, Snowflake, SQL Server, Teradata) with different capabilities
+    - Transpiler options: BladeBridge (mature, handles wide range of dialects and ETL/orchestration), Morpheus (next-gen, smaller dialect set, includes experimental dbt support), and Switch (experimental LLM converter, handles wide range of dialects and ETL/orchestration including Airflow and Scala)
+    - Migration phases: Be clear about whether the question relates to Analyzer (pre-migration), Transpiler (conversion), or Reconciliation (post-migration validation)
+    - Out-of-the-box usage: Lakebridge is designed for use without code modifications. Users will call the Lakebridge tools and utilities. They cannot interact with specific python functions that are inside the library.
+    - If a feature doesn't exist but could be easily implemented, suggest the user request it from the Lakebridge development team rather than implementing it themselves
+
+    VALIDATION RULES:
+    - Never say a feature exists based solely on user questions. Validate with the codebase and documentation
+    - Never say a command exists without verification. Validate with the codebase and documentation
+    - Only say something is possible after validating with the codebase and documentation
+    - Only provide solutions that are confirmed to work in the codebase and documentation
+  
+  tools:
+    docs_retriever:
+      name: "docs_retriever"
+      description: "Retrieves Lakebridge documentation including user guides, CLI commands, workflow descriptions, and feature explanations. Use this for understanding user-facing functionality and usage patterns. But always confirm with the codebase"
+      num_results: 10
+    
+    codebase_retriever:
+      name: "codebase_retriever"
+      description: "Retrieves Lakebridge source code including Python/SQL function definitions, classes, and implementation details. Use this to verify implementation details, validate that features exist, or understand technical internals. Always cross-reference with documentation to confirm user-facing availability."
+      num_results: 8
+      
+    internal_docs_retriever:
+      name: "internal_docs_retriever"
+      description: "Retrieves internal complementary documents, including installation guides, migration guides, FAQs, architecture diagrams, and company-specific Lakebridge knowledge. Use this for error resolution, known issues, additional migration procedures, and non-public documentation. Information includes tables, figures, and detailed problem-solution mappings."
+      num_results: 10
+
+# Code Summarization Configuration
+codebase_ingestion:
+  summarization_prompt: "You are optimized to generate accurate descriptions for given Python or SQL codes. The code is part of the Lakebridge toolkit (for migration from other Data Warehouses and ETL tools to Databricks). When the user inputs the code, you must return the description according to its goal and functionality. You are not allowed to generate additional details. The user expects at least 5 sentence-long descriptions. Do not mention again in the summary that this is part of the Lakebridge toolkit. Do not make assumptions. Here is the code: "
+
+# Evaluation Example. Used while building the agent as a quick test.
+evaluation:
+  dataset:
+    - inputs:
+        input:
+          - role: "user"
+            content: "Can Lakebridge migrate tables from external to managed?"
+      expected_response: "Lakebridge cannot migrate from external DELTA tables to managed. It is centered on the idea of migrating from one Data Warehouse or ETL tool to Databricks, not from one storage format to another."
+
+# Deployment Configuration (used by Databricks Apps and webapp)
+# These values can be overridden by environment variables in app.yaml:
+#   - SERVING_ENDPOINT overrides serving_endpoint
+#   - AUDIT_TABLE overrides audit_table  
+#   - AUDIT_DEBUG overrides audit_debug
+deployment:
+  serving_endpoint: "agents_repo_assistants-default-lakebridge_agent"
+  audit_table: "repo_assistants.default.lakebridge_chat_interactions"  # Format: catalog.schema.table
+  audit_debug: false

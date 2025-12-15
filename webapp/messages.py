@@ -10,7 +10,9 @@ import yaml
 from abc import ABC, abstractmethod
 
 # Load configuration
-config_path = "config.yaml"
+import os
+config_file = os.getenv('CONFIG_FILE', 'configs/ucx.config.yaml')
+config_path = os.path.join(os.path.dirname(__file__), config_file)
 with open(config_path, 'r') as f:
     CONFIG = yaml.safe_load(f)
 
@@ -66,69 +68,42 @@ class AssistantResponse(Message):
     def _extract_doc_sources(self):
         """Extract unique doc_uri values from all tool responses."""
         import json
-        import logging
-        logger = logging.getLogger(__name__)
+        import re
         
         doc_sources = set()
         
-        logger.info(f"🔍 _extract_doc_sources called with {len(self.thinking_messages)} thinking messages")
-        
-        for idx, msg in enumerate(self.thinking_messages):
-            logger.info(f"  Message {idx}: role={msg.get('role')}, has_content={bool(msg.get('content'))}")
-            
+        for msg in self.thinking_messages:
             if msg.get("role") == "tool":
                 content = msg.get("content", "")
-                logger.info(f"  📦 Processing tool message {idx} with content length: {len(content)}")
-                logger.info(f"  📦 First 200 chars: {content[:200]}")
                 
                 try:
+                    # Try JSON first
                     data = json.loads(content)
-                    logger.info(f"  ✅ Successfully parsed JSON, type: {type(data)}")
-                    
                     if isinstance(data, list):
-                        logger.info(f"  📋 List has {len(data)} items")
-                        for item_idx, item in enumerate(data):
-                            if isinstance(item, dict):
-                                logger.info(f"    Item {item_idx} keys: {list(item.keys())}")
-                                if 'metadata' in item:
-                                    metadata = item['metadata']
-                                    logger.info(f"    Metadata keys: {list(metadata.keys())}")
+                        for item in data:
+                            if isinstance(item, dict) and 'metadata' in item:
+                                metadata = item['metadata']
+                                if isinstance(metadata, dict):
                                     doc_uri = metadata.get('doc_uri')
                                     if doc_uri:
                                         doc_sources.add(doc_uri)
-                                        logger.info(f"    ✅ Found doc_uri: {doc_uri}")
-                                    else:
-                                        logger.warning(f"    ⚠️ No doc_uri in metadata")
-                                else:
-                                    logger.warning(f"    ⚠️ No metadata in item")
-                except json.JSONDecodeError as e:
-                    logger.warning(f"  ❌ Failed to parse JSON: {e}")
-                except Exception as e:
-                    logger.warning(f"  ❌ Error processing tool content: {e}")
-        
-        logger.info(f"🎯 Total sources found: {len(doc_sources)}")
-        if doc_sources:
-            logger.info(f"📚 Sources: {doc_sources}")
+                except json.JSONDecodeError:
+                    # Use regex to extract doc_uri values from Python-formatted string
+                    doc_uri_pattern = r"'doc_uri':\s*'([^']+)'"
+                    matches = re.findall(doc_uri_pattern, content)
+                    for uri in matches:
+                        doc_sources.add(uri)
+                except Exception:
+                    pass
         
         return doc_sources
 
     def render(self, idx):
-        import logging
-        logger = logging.getLogger(__name__)
-        
-        logger.info(f"🎨 Rendering AssistantResponse {idx}")
-        logger.info(f"  - thinking_messages: {len(self.thinking_messages)}")
-        logger.info(f"  - final_content length: {len(self.final_content)}")
-        logger.info(f"  - messages: {len(self.messages)}")
-        
         with st.chat_message("assistant"):
             # If we have separated thinking/final content, render them separately
             if self.thinking_messages or self.final_content:
-                logger.info("  ✅ Using separated rendering (thinking + final)")
-                
                 # Show thinking section if we have tool calls/outputs
                 if self.thinking_messages:
-                    logger.info(f"  🤔 Rendering {len(self.thinking_messages)} thinking messages")
                     # Use "Done" label for completed responses, "Thinking" for incomplete
                     expander_label = "✅ Done" if self.is_complete else "🤔 Thinking process..."
                     thinking_container = st.expander(expander_label, expanded=False)
@@ -138,19 +113,15 @@ class AssistantResponse(Message):
                 
                 # Show final answer
                 if self.final_content:
-                    logger.info(f"  💬 Rendering final content ({len(self.final_content)} chars)")
                     st.markdown(self.final_content)
                 
                 # Extract and show document sources from tool outputs
-                logger.info("  📚 Attempting to extract doc sources...")
                 doc_sources = self._extract_doc_sources()
                 
                 if doc_sources:
-                    logger.info(f"  ✅ Found {len(doc_sources)} sources, rendering...")
                     st.markdown("---")
                     st.markdown("📚 **Sources:**")
                     
-                    # Create tabs for horizontal navigation
                     if len(doc_sources) == 1:
                         source = list(doc_sources)[0]
                         st.markdown(f"[{source}]({source})")
@@ -163,10 +134,7 @@ class AssistantResponse(Message):
                                 # Extract filename from URL for display
                                 filename = source.split('/')[-1] if '/' in source else source
                                 st.markdown(f"[{filename}]({source})")
-                else:
-                    logger.warning("  ⚠️ No doc sources found")
             else:
-                logger.info("  ⚠️ Using fallback rendering (all messages)")
                 # Fallback: render all messages normally (legacy behavior)
                 for msg in self.messages:
                     render_message(msg)
@@ -181,14 +149,14 @@ class AssistantResponse(Message):
                 
                 with col1:
                     word_count = len(self.final_content.split()) if self.final_content else 0
-                    st.markdown(f"**💾 Download available** • {word_count} words • {CONFIG['pdf_download_label']}")
+                    st.markdown(f"**💾 Download available** • {word_count} words • {CONFIG.get('pdf_download_label', 'Ready for documentation')}")
                 
                 with col2:
                     # Small icon-sized download button that persists
                     st.download_button(
                         label="📄",
                         data=self.pdf_data,
-                        file_name=f"{CONFIG['pdf_filename_prefix']}_{time.strftime('%Y%m%d_%H%M%S')}.pdf",
+                        file_name=f"{CONFIG.get('pdf_filename_prefix', 'Response')}_{time.strftime('%Y%m%d_%H%M%S')}.pdf",
                         mime="application/pdf",
                         help="Download PDF report",
                         key=f"pdf_download_{idx}_{abs(hash(self.final_content))}",

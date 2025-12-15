@@ -27,8 +27,11 @@ table_codebase = dbutils.widgets.get("table_codebase")
 dbutils.widgets.text("github_token", "", "")
 github_token = dbutils.widgets.get("github_token")
 
+dbutils.widgets.text("config_file", "configs/ucx.config.yaml", "")
+config_file = dbutils.widgets.get("config_file")
+
 # Load the main configuration file
-config_path = "../webapp/config.yaml"
+config_path = f"../webapp/{config_file}"
 with open(config_path, "r") as f:
     main_config = yaml.safe_load(f)
 
@@ -154,7 +157,7 @@ print(f"{combined_df.count()} documents indexed")
 # COMMAND ----------
 
 # MAGIC %sql
-# MAGIC CREATE OR REPLACE TABLE IDENTIFIER(:table_codebase) AS 
+# MAGIC CREATE OR REPLACE TABLE IDENTIFIER(:table_codebase) USING DELTA AS 
 # MAGIC SELECT *, CONCAT(
 # MAGIC   definition, '\n\n', ai_query(
 # MAGIC      :summarising_endpoint, 
@@ -174,7 +177,7 @@ print(f"{combined_df.count()} documents indexed")
 # COMMAND ----------
 
 # MAGIC %sql
-# MAGIC CREATE OR REPLACE TABLE IDENTIFIER(:table_codebase) AS 
+# MAGIC CREATE OR REPLACE TABLE IDENTIFIER(:table_codebase) USING DELTA AS 
 # MAGIC SELECT *, CONCAT("https://github.com/search?q=repo:", :repo ,"+path:/", file_name, "&type=code") AS file_url FROM IDENTIFIER(:table_codebase)
 # MAGIC
 

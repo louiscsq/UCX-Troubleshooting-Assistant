@@ -4,7 +4,7 @@
 
 # COMMAND ----------
 
-# MAGIC %pip install -U -qqqq backoff databricks-openai uv databricks-agents mlflow-skinny[databricks] PyYAML
+# MAGIC %pip install -U -qqqq backoff databricks-openai uv databricks-agents>=1.2.0 mlflow>=3.1.0 PyYAML
 # MAGIC dbutils.library.restartPython()
 
 # COMMAND ----------
@@ -22,8 +22,14 @@ table_documentation = dbutils.widgets.get("table_documentation")
 dbutils.widgets.text("table_codebase", "", "")
 table_codebase = dbutils.widgets.get("table_codebase")
 
+dbutils.widgets.text("table_internal_documents", "", "")
+table_internal_documents = dbutils.widgets.get("table_internal_documents")
+
+dbutils.widgets.text("config_file", "configs/ucx.config.yaml", "")
+config_file = dbutils.widgets.get("config_file")
+
 # Load the main configuration file
-config_path = "../webapp/config.yaml"
+config_path = f"../webapp/{config_file}"
 with open(config_path, "r") as f:
     main_config = yaml.safe_load(f)
 
@@ -41,6 +47,8 @@ if table_documentation:
     agent_config["vector_search"]["documentation_index"] = f"{table_documentation}_vector"
 if table_codebase:
     agent_config["vector_search"]["codebase_index"] = f"{table_codebase}_vector"
+if table_internal_documents:
+    agent_config["vector_search"]["internal_documents_index"] = f"{table_internal_documents}_vector"
 
 with open("agent_config.json", "w") as f:
     json.dump(agent_config, f)
@@ -108,7 +116,10 @@ with mlflow.start_run():
         name="agent",
         python_model="agent.py",
         pip_requirements=[
-            "databricks-openai",
+            "mlflow>=3.1.0",  # Required for real-time tracing and mlflow.tracing.enable()
+            "databricks-agents>=1.2.0",  # Required for real-time tracing support
+            "databricks-openai>=0.3.0",
+            "openai>=1.0.0",  # Required for proper OpenAI SDK integration
             "backoff",
             f"databricks-connect=={get_distribution('databricks-connect').version}",
         ],

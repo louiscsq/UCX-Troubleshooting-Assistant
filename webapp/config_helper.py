@@ -9,7 +9,8 @@ import yaml
 from typing import Dict, Any
 
 # Load main config.yaml
-config_path = "config.yaml"
+config_file = os.getenv('CONFIG_FILE', 'configs/ucx.config.yaml')
+config_path = os.path.join(os.path.dirname(__file__), config_file)
 try:
     with open(config_path, 'r') as f:
         MAIN_CONFIG = yaml.safe_load(f)
@@ -114,27 +115,3 @@ export AUDIT_CATALOG="{config['catalog_name']}"
 export AUDIT_SCHEMA="{config['schema_name']}"  
 export AUDIT_TABLE="{config['table_name']}"
             """)
-
-# Configuration presets for different environments
-ENVIRONMENT_PRESETS = {
-    'development': {
-        'catalog_name': 'main',
-        'schema_name': 'assistant_audit_dev',
-        'table_name': 'chat_interactions'
-    },
-    'staging': {
-        'catalog_name': 'main',
-        'schema_name': 'assistant_audit_staging',
-        'table_name': 'chat_interactions'
-    },
-    'production': {
-        'catalog_name': 'main',
-        'schema_name': 'assistant_audit_prod',
-        'table_name': 'chat_interactions'
-    },
-    'shared': {
-        'catalog_name': 'shared',
-        'schema_name': 'assistant_audit',
-        'table_name': 'chat_interactions'
-    }
-}

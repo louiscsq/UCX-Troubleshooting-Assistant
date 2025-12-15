@@ -1,17 +1,21 @@
 resources:
   jobs:
     w02_build_agent_and_deploy:
-      name: w02_build_agent_and_deploy
+      name: w02_${var.project_prefix}_build_agent_and_deploy
       queue:
         enabled: true
 
       parameters:
+        - name: "config_file"
+          default: "${var.config_file}"
         - name: "uc_agent_model"
           default: "${var.uc_agent_model}"
         - name: "table_documentation"
           default: "${var.table_documentation}"
         - name: "table_codebase"
           default: "${var.table_codebase}"
+        - name: "table_internal_documents"
+          default: "${var.table_internal_documents}"
 
       tasks:
         - task_key: build_agent_and_deploy

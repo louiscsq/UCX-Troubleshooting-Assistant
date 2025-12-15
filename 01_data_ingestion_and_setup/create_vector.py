@@ -1,5 +1,5 @@
 # Databricks notebook source
-# MAGIC %pip install -U -qqqq backoff databricks-openai uv databricks-agents mlflow-skinny[databricks] databricks-vectorsearch==0.55
+# MAGIC %pip install -U -qqqq backoff databricks-openai uv databricks-agents>=1.2.0 mlflow>=3.1.0 databricks-vectorsearch==0.55
 
 # COMMAND ----------
 
@@ -113,6 +113,18 @@ source_table_fullname = table_source
 
 wait_for_vs_endpoint_to_be_ready(vsc, vector_search_endpoint)
 
+# Check if the source table has a doc_type or type column
+table_columns = [field.name for field in spark.table(source_table_fullname).schema.fields]
+columns_to_sync = ["chunk_id", "embed_input", "file_url"]
+
+# Add doc_type or type column if it exists in the source table
+if "doc_type" in table_columns:
+    columns_to_sync.append("doc_type")
+elif "type" in table_columns:
+    columns_to_sync.append("type")
+
+print(f"Columns to sync: {columns_to_sync}")
+
 if not index_exists(vsc, vector_search_endpoint, vs_index_fullname):
   print(f"Creating index {vs_index_fullname} on endpoint {vector_search_endpoint}...")
   try:
@@ -121,7 +133,7 @@ if not index_exists(vsc, vector_search_endpoint, vs_index_fullname):
       source_table_name=source_table_fullname,
       index_name=vs_index_fullname,
       primary_key="chunk_id",
-      columns_to_sync=["chunk_id", "embed_input", "file_url"],
+      columns_to_sync=columns_to_sync,
       pipeline_type="TRIGGERED",
       embedding_source_column="embed_input",
       embedding_model_endpoint_name=embedding_model_endpoint,

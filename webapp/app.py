@@ -12,7 +12,6 @@ from model_serving_utils import (
 )
 from assistant_utils import AssistantTroubleshooter
 from audit_utils import get_auditor, PrivacyManager
-from simple_audit_utils import get_simple_auditor
 from collections import OrderedDict
 from messages import UserMessage, AssistantResponse, render_message
 
@@ -20,69 +19,41 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Load configuration
-config_path = "config.yaml"
+config_file = os.getenv('CONFIG_FILE', 'configs/ucx.config.yaml')
+config_path = os.path.join(os.path.dirname(__file__), config_file)
 with open(config_path, 'r') as f:
     CONFIG = yaml.safe_load(f)
 
 def _extract_doc_sources_from_tool_messages(thinking_messages):
     """Extract unique doc_uri values from tool messages."""
     import json
-    import ast
-    
-    logger.info(f"🔍 _extract_doc_sources_from_tool_messages called with {len(thinking_messages)} messages")
+    import re
     
     doc_sources = set()
     
-    for idx, msg in enumerate(thinking_messages):
-        logger.info(f"  Message {idx}: role={msg.get('role')}")
-        
+    for msg in thinking_messages:
         if msg.get("role") == "tool":
             content = msg.get("content", "")
-            logger.info(f"  📦 Tool message {idx}, content length: {len(content)}")
-            logger.info(f"  📦 First 500 chars: {content[:500]}")
             
             try:
                 # Try JSON first
-                try:
-                    data = json.loads(content)
-                    logger.info(f"  ✅ Parsed as JSON")
-                except json.JSONDecodeError:
-                    # Fall back to Python literal eval
-                    logger.info(f"  ⚠️ Not JSON, trying ast.literal_eval...")
-                    data = ast.literal_eval(content)
-                    logger.info(f"  ✅ Parsed as Python literal")
-                
-                logger.info(f"  ✅ Data type: {type(data)}")
-                
+                data = json.loads(content)
                 if isinstance(data, list):
-                    logger.info(f"  📋 List with {len(data)} items")
-                    
-                    for item_idx, item in enumerate(data):
-                        if isinstance(item, dict):
-                            if 'metadata' in item:
-                                metadata = item['metadata']
-                                
-                                if isinstance(metadata, dict):
-                                    doc_uri = metadata.get('doc_uri')
-                                    
-                                    if doc_uri:
-                                        doc_sources.add(doc_uri)
-                                        logger.info(f"    ✅ Added source: {doc_uri}")
-                                    else:
-                                        # Log what keys ARE available
-                                        if item_idx < 3:  # Only log first 3
-                                            logger.warning(f"    ⚠️ Item {item_idx} metadata keys: {list(metadata.keys())}")
-                else:
-                    logger.warning(f"  ⚠️ Data is not a list, it's: {type(data)}")
-                    
+                    for item in data:
+                        if isinstance(item, dict) and 'metadata' in item:
+                            metadata = item['metadata']
+                            if isinstance(metadata, dict):
+                                doc_uri = metadata.get('doc_uri')
+                                if doc_uri:
+                                    doc_sources.add(doc_uri)
+            except json.JSONDecodeError:
+                # Use regex to extract doc_uri values from Python-formatted string
+                doc_uri_pattern = r"'doc_uri':\s*'([^']+)'"
+                matches = re.findall(doc_uri_pattern, content)
+                for uri in matches:
+                    doc_sources.add(uri)
             except Exception as e:
-                logger.error(f"  ❌ Error parsing content: {e}", exc_info=True)
-    
-    logger.info(f"🎯 Total sources found: {len(doc_sources)}")
-    if doc_sources:
-        logger.info(f"📚 Sources: {list(doc_sources)}")
-    else:
-        logger.warning("⚠️ No sources found!")
+                logger.debug(f"Error parsing tool content: {e}")
     
     return doc_sources
 
@@ -155,7 +126,7 @@ if "visibility" not in st.session_state:
     st.session_state.visibility = "visible"
     st.session_state.disabled = False
 
-st.title(CONFIG['ui_title'])
+st.title(CONFIG.get('ui_title', 'Troubleshooting Assistant'))
 
 # Check for admin dashboard access via URL parameters
 admin_access = False
@@ -247,67 +218,36 @@ if diagnostics_access:
     
     st.stop()
 
-# Add project-specific sidebar
-with st.sidebar:
-    st.header(CONFIG['sidebar_header'])
-    
-    if st.button(CONFIG['sidebar_installation_label']):
-        troubleshooter = AssistantTroubleshooter()
-        checklist = troubleshooter.get_installation_checklist()
-        st.write(f"### {CONFIG['sidebar_installation_title']}")
-        for item in checklist:
-            st.write(item)
-        
-        # Log checklist interaction
-        auditor.log_interaction(
-            session_id=st.session_state.session_id,
-            user_info=user_info,
-            user_question="Requested Installation Checklist",
-            assistant_response=f"Provided {len(checklist)} installation checklist items",
-            response_time_ms=0,
-            endpoint_used="N/A",
-            interaction_type="checklist"
-        )
-    
-    if st.button(CONFIG['sidebar_assessment_label']):
-        troubleshooter = AssistantTroubleshooter()
-        checklist = troubleshooter.get_assessment_checklist()
-        st.write(f"### {CONFIG['sidebar_assessment_title']}")
-        for item in checklist:
-            st.write(item)
-        
-        # Log checklist interaction
-        auditor.log_interaction(
-            session_id=st.session_state.session_id,
-            user_info=user_info,
-            user_question="Requested Assessment Checklist",
-            assistant_response=f"Provided {len(checklist)} assessment checklist items",
-            response_time_ms=0,
-            endpoint_used="N/A",
-            interaction_type="checklist"
-        )
-    
-    if st.button(CONFIG['sidebar_errors_label']):
-        troubleshooter = AssistantTroubleshooter()
-        errors = troubleshooter.get_common_errors()
-        st.write(f"### {CONFIG['sidebar_errors_title']}")
-        for error_key, error_info in errors.items():
-            with st.expander(f"🚨 {error_info['error']}"):
-                st.write(f"**Solution:** {error_info['solution']}")
-                st.write(f"**Details:** {error_info['details']}")
-        
-        # Log common errors interaction
-        auditor.log_interaction(
-            session_id=st.session_state.session_id,
-            user_info=user_info,
-            user_question="Requested Common Errors Guide",
-            assistant_response=f"Provided {len(errors)} common error solutions",
-            response_time_ms=0,
-            endpoint_used="N/A",
-            interaction_type="common_errors"
-        )
+# Add project-specific sidebar (load data only once per session)
+if "sidebar_data" not in st.session_state:
+    troubleshooter = AssistantTroubleshooter()
+    st.session_state.sidebar_data = {
+        'installation': troubleshooter.get_installation_checklist(),
+        'assessment': troubleshooter.get_assessment_checklist(),
+        'errors': troubleshooter.get_common_errors()
+    }
 
-st.markdown(CONFIG['ui_tagline'])
+with st.sidebar:
+    st.header(CONFIG.get('sidebar_header', 'Common Troubleshooting Examples'))
+    
+    with st.expander(CONFIG.get('sidebar_installation_label', '📋 Installation Checklist')):
+        for item in st.session_state.sidebar_data['installation']:
+            st.write(item)
+    
+    # Only show assessment button if config has assessment labels (e.g., UCX but not Lakebridge)
+    if CONFIG.get('sidebar_assessment_label'):
+        with st.expander(CONFIG.get('sidebar_assessment_label', '🔍 Assessment Checklist')):
+            for item in st.session_state.sidebar_data['assessment']:
+                st.write(item)
+    
+    with st.expander(CONFIG.get('sidebar_errors_label', '📚 Common Errors')):
+        for error_key, error_info in st.session_state.sidebar_data['errors'].items():
+            st.markdown(f"**🚨 {error_info['error']}**")
+            st.write(f"**Solution:** {error_info['solution']}")
+            st.write(f"**Details:** {error_info['details']}")
+            st.markdown("---")
+
+st.markdown(CONFIG.get('ui_tagline', '💡 Get help with troubleshooting issues.'))
 
 # Initialize chat history
 if "history" not in st.session_state:
@@ -691,35 +631,22 @@ def query_responses_endpoint_and_render(input_messages):
                 response_area.markdown("_Response completed. See thinking process above._")
             
             # Extract and display sources
-            logger.info("🚀 About to extract doc sources...")
             doc_sources = _extract_doc_sources_from_tool_messages(thinking_messages)
-            logger.info(f"🚀 Extraction complete, found {len(doc_sources)} sources")
             
             if doc_sources:
-                logger.info("✅ Rendering sources section...")
                 st.markdown("---")
                 st.markdown("📚 **Sources read by assistant:**")
                 
                 if len(doc_sources) == 1:
                     source = list(doc_sources)[0]
-                    logger.info(f"Rendering single source: {source}")
                     st.markdown(f"[{source}]({source})")
                 else:
-                    logger.info(f"Rendering {len(doc_sources)} sources in columns...")
                     cols = st.columns(min(len(doc_sources), 3))
                     for idx, source in enumerate(sorted(doc_sources)):
                         col_idx = idx % len(cols)
                         with cols[col_idx]:
                             filename = source.split('/')[-1] if '/' in source else source
                             st.markdown(f"[{filename}]({source})")
-                logger.info("✅ Sources section rendered")
-            else:
-                logger.warning("⚠️ No sources to render")
-            
-            logger.info(f"Creating AssistantResponse with {len(thinking_messages)} thinking messages")
-            for msg in thinking_messages:
-                if msg.get("role") == "tool":
-                    logger.info(f"Tool message content length: {len(msg.get('content', ''))}")
             
             return AssistantResponse(
                 messages=all_messages,
@@ -772,8 +699,6 @@ def query_responses_endpoint_and_render(input_messages):
                     for message in messages:
                         render_message(message)
             
-            logger.info(f"Fallback: Creating AssistantResponse with {len(tool_msgs)} thinking messages")
-                    
             return AssistantResponse(
                 messages=messages,
                 request_id=request_id,
@@ -787,7 +712,7 @@ for i, element in enumerate(st.session_state.history):
 
 
 # --- Chat input (must run BEFORE rendering messages) ---
-prompt = st.chat_input(CONFIG['chat_placeholder'])
+prompt = st.chat_input(CONFIG.get('chat_placeholder', 'Describe your issue...'))
 if prompt:
     # Start timing for audit logging
     start_time = time.time()
@@ -865,7 +790,7 @@ if prompt:
             story = []
             
             # Add content
-            story.append(Paragraph(CONFIG['pdf_title'], styles['Title']))
+            story.append(Paragraph(CONFIG.get('pdf_title', 'Troubleshooting Assistant Response'), styles['Title']))
             story.append(Spacer(1, 12))
             story.append(Paragraph(f"Date: {time.strftime('%Y-%m-%d %H:%M:%S')}", styles['Normal']))
             story.append(Paragraph(f"Question: {prompt}", styles['Normal']))
@@ -904,14 +829,14 @@ if prompt:
         
         with col1:
             word_count = len(final_content_for_pdf.split())
-            st.markdown(f"**💾 Download available** • {word_count} words • {CONFIG['pdf_download_label']}")
+            st.markdown(f"**💾 Download available** • {word_count} words • {CONFIG.get('pdf_download_label', 'Ready for documentation')}")
         
         with col2:
             # Small icon-sized download button that persists
             st.download_button(
                 label="📄",
                 data=st.session_state[pdf_session_key],
-                file_name=f"{CONFIG['pdf_filename_prefix']}_{time.strftime('%Y%m%d_%H%M%S')}.pdf",
+                file_name=f"{CONFIG.get('pdf_filename_prefix', 'Response')}_{time.strftime('%Y%m%d_%H%M%S')}.pdf",
                 mime="application/pdf",
                 help="Download PDF report",
                 key=persistent_key,

@@ -1,0 +1,9 @@
+resources:
+  apps:
+    app_assistant:
+      name: ${bundle.target}-${bundle.name}
+      source_code_path: ../webapp
+      description: "${var.project_prefix} troubleshooting assistant"
+      permissions:
+        - group_name: "account users"
+          level: CAN_USE

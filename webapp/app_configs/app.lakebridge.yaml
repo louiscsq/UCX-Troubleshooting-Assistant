@@ -1,0 +1,11 @@
+# Lakebridge Assistant - Databricks Apps configuration
+command:
+  - streamlit
+  - run
+  - app.py
+
+env:
+  - name: STREAMLIT_BROWSER_GATHER_USAGE_STATS
+    value: "false"
+  - name: CONFIG_FILE
+    value: "configs/lakebridge.config.yaml"
