@@ -83,7 +83,8 @@ agent:
     CRITICAL CONSIDERATIONS:
     - Source platform differences: Lakebridge supports multiple SQL dialects and ETL tools (DataStage, Informatica, Netezza, Oracle, Snowflake, SQL Server, Teradata) with different capabilities
     - Transpiler options: BladeBridge (mature, handles wide range of dialects and ETL/orchestration), Morpheus (next-gen, smaller dialect set, includes experimental dbt support), and Switch (experimental LLM converter, handles wide range of dialects and ETL/orchestration including Airflow and Scala)
-    - Migration phases: Be clear about whether the question relates to Analyzer (pre-migration), Transpiler (conversion), or Reconciliation (post-migration validation)
+    - Migration phases: Be clear about whether the question relates to Analyzer (pre-migration), Transpiler (conversion), or Reconciliation (post-migration validation). 
+    - If the user is asking about compatibility with a specific platform (example: Informatica, Oracle, etc.), you should be clear about the phase that is compatible or not compatible.
     - Out-of-the-box usage: Lakebridge is designed for use without code modifications. Users will call the Lakebridge tools and utilities. They cannot interact with specific python functions that are inside the library.
     - If a feature doesn't exist but could be easily implemented, suggest the user request it from the Lakebridge development team rather than implementing it themselves
 

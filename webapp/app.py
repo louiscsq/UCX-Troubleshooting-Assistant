@@ -13,7 +13,13 @@ from model_serving_utils import (
 from assistant_utils import AssistantTroubleshooter
 from audit_utils import get_auditor, PrivacyManager
 from collections import OrderedDict
-from messages import UserMessage, AssistantResponse, render_message
+from messages import (
+    UserMessage,
+    AssistantResponse,
+    render_message,
+    render_assistant_message_feedback,
+    format_doc_source,
+)
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -23,6 +29,16 @@ config_file = os.getenv('CONFIG_FILE', 'configs/ucx.config.yaml')
 config_path = os.path.join(os.path.dirname(__file__), config_file)
 with open(config_path, 'r') as f:
     CONFIG = yaml.safe_load(f)
+
+_APP_DIR = os.path.dirname(__file__)
+_UI_TITLE = CONFIG.get('ui_title', 'Troubleshooting Assistant')
+_FAVICON_PATH = os.path.join(_APP_DIR, "static", "databricks-favicon-32x32.png")
+
+# Must be the first Streamlit call in the script.
+st.set_page_config(
+    page_title=_UI_TITLE,
+    page_icon=_FAVICON_PATH,
+)
 
 def _extract_doc_sources_from_tool_messages(thinking_messages):
     """Extract unique doc_uri values from tool messages."""
@@ -121,12 +137,20 @@ if audit_debug:
     }
     logger.info(f"Audit configuration: {audit_config}")
 
-# Streamlit app
 if "visibility" not in st.session_state:
     st.session_state.visibility = "visible"
     st.session_state.disabled = False
 
-st.title(CONFIG.get('ui_title', 'Troubleshooting Assistant'))
+st.title(_UI_TITLE)
+
+def _clear_conversation_state() -> None:
+    # Clear common session keys so the conversation starts fresh after reload.
+    keys = list(st.session_state.keys())
+    for k in keys:
+        if k in {"history", "session_id", "sidebar_data"}:
+            st.session_state.pop(k, None)
+        elif k.startswith("pdf_data_") or k.startswith("has_download_") or k.startswith("feedback_"):
+            st.session_state.pop(k, None)
 
 # Check for admin dashboard access via URL parameters
 admin_access = False
@@ -228,6 +252,14 @@ if "sidebar_data" not in st.session_state:
     }
 
 with st.sidebar:
+    # Keep this action always visible while the user scrolls the conversation in the main pane.
+    if st.button("Reload conversation", key="__reload_conversation__", type="secondary", use_container_width=True):
+        _clear_conversation_state()
+        import streamlit.components.v1 as components
+        components.html("<script>window.parent.location.reload()</script>", height=0, width=0)
+        # Prevent the rest of the script from running after we cleared session state in this same run.
+        st.stop()
+
     st.header(CONFIG.get('sidebar_header', 'Common Troubleshooting Examples'))
     
     with st.expander(CONFIG.get('sidebar_installation_label', '📋 Installation Checklist')):
@@ -318,17 +350,17 @@ def reduce_chat_agent_chunks(chunks):
     return result_msg
 
 
-def query_endpoint_and_render(task_type, input_messages):
+def query_endpoint_and_render(task_type, input_messages, assistant_msg_idx=None):
     """Handle streaming response based on task type."""
     if task_type == "agent/v1/responses":
-        return query_responses_endpoint_and_render(input_messages)
+        return query_responses_endpoint_and_render(input_messages, assistant_msg_idx=assistant_msg_idx)
     elif task_type == "agent/v2/chat":
-        return query_chat_agent_endpoint_and_render(input_messages)
+        return query_chat_agent_endpoint_and_render(input_messages, assistant_msg_idx=assistant_msg_idx)
     else:  # chat/completions
-        return query_chat_completions_endpoint_and_render(input_messages)
+        return query_chat_completions_endpoint_and_render(input_messages, assistant_msg_idx=assistant_msg_idx)
 
 
-def query_chat_completions_endpoint_and_render(input_messages):
+def query_chat_completions_endpoint_and_render(input_messages, assistant_msg_idx=None):
     """Handle ChatCompletions streaming format."""
     with st.chat_message("assistant"):
         thinking_container_placeholder = st.empty()
@@ -364,6 +396,10 @@ def query_chat_completions_endpoint_and_render(input_messages):
             with thinking_container_placeholder.container():
                 with st.expander("✅ Done", expanded=False):
                     st.markdown("_Response generated_")
+
+            # Render feedback immediately for the latest message (otherwise it only appears after a rerun)
+            if request_id is not None and assistant_msg_idx is not None:
+                render_assistant_message_feedback(assistant_msg_idx, request_id)
             
             return AssistantResponse(
                 messages=[{"role": "assistant", "content": accumulated_content}],
@@ -388,10 +424,15 @@ def query_chat_completions_endpoint_and_render(input_messages):
             with response_area.container():
                 for message in messages:
                     render_message(message)
+
+            # Render feedback for non-streaming fallback as well
+            if request_id is not None and assistant_msg_idx is not None:
+                render_assistant_message_feedback(assistant_msg_idx, request_id)
+
             return AssistantResponse(messages=messages, request_id=request_id, final_content=final_content)
 
 
-def query_chat_agent_endpoint_and_render(input_messages):
+def query_chat_agent_endpoint_and_render(input_messages, assistant_msg_idx=None):
     """Handle ChatAgent streaming format."""
     from mlflow.types.agent import ChatAgentChunk
     
@@ -473,11 +514,16 @@ def query_chat_agent_endpoint_and_render(input_messages):
             with response_area.container():
                 for message in messages:
                     render_message(message)
+
+            # Render feedback for non-streaming fallback as well
+            if request_id is not None and assistant_msg_idx is not None:
+                render_assistant_message_feedback(assistant_msg_idx, request_id)
+
             return AssistantResponse(messages=messages, request_id=request_id, final_content=final_content)
 
 
 # In app.py, update the query_responses_endpoint_and_render function:
-def query_responses_endpoint_and_render(input_messages):
+def query_responses_endpoint_and_render(input_messages, assistant_msg_idx=None):
     """Handle ResponsesAgent streaming format using MLflow types with collapsed thinking."""
     from mlflow.types.responses import ResponsesAgentStreamEvent
     
@@ -639,14 +685,25 @@ def query_responses_endpoint_and_render(input_messages):
                 
                 if len(doc_sources) == 1:
                     source = list(doc_sources)[0]
-                    st.markdown(f"[{source}]({source})")
+                    label, link = format_doc_source(source)
+                    if link:
+                        st.markdown(f"[{label}]({link})")
+                    else:
+                        st.markdown(label)
                 else:
                     cols = st.columns(min(len(doc_sources), 3))
                     for idx, source in enumerate(sorted(doc_sources)):
                         col_idx = idx % len(cols)
                         with cols[col_idx]:
-                            filename = source.split('/')[-1] if '/' in source else source
-                            st.markdown(f"[{filename}]({source})")
+                            label, link = format_doc_source(source)
+                            if link:
+                                st.markdown(f"[{label}]({link})")
+                            else:
+                                st.markdown(label)
+
+            # Render feedback immediately for the latest message (otherwise it only appears after a rerun)
+            if request_id is not None and assistant_msg_idx is not None:
+                render_assistant_message_feedback(assistant_msg_idx, request_id)
             
             return AssistantResponse(
                 messages=all_messages,
@@ -698,6 +755,10 @@ def query_responses_endpoint_and_render(input_messages):
                 with response_area.container():
                     for message in messages:
                         render_message(message)
+
+            # Render feedback for non-streaming fallback as well
+            if request_id is not None and assistant_msg_idx is not None:
+                render_assistant_message_feedback(assistant_msg_idx, request_id)
             
             return AssistantResponse(
                 messages=messages,
@@ -732,12 +793,15 @@ if prompt:
     user_msg = UserMessage(content=prompt)
     st.session_state.history.append(user_msg)
     user_msg.render(len(st.session_state.history) - 1)
+
+    # The assistant message will be appended next; pre-compute its stable index for widget keys.
+    assistant_msg_idx = len(st.session_state.history)
     
     # Convert history to standard chat message format for the query methods
     input_messages = [msg for elem in st.session_state.history for msg in elem.to_input_messages()]
     
     # Handle the response using the appropriate handler
-    assistant_response = query_endpoint_and_render(task_type, input_messages)
+    assistant_response = query_endpoint_and_render(task_type, input_messages, assistant_msg_idx=assistant_msg_idx)
     
     # Calculate response time
     response_time_ms = int((time.time() - start_time) * 1000)
