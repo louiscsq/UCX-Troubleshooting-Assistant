@@ -107,7 +107,7 @@ agent:
       
     internal_docs_retriever:
       name: "internal_docs_retriever"
-      description: "Retrieves internal complementary documents, including installation guides, migration guides, FAQs, architecture diagrams, and company-specific Lakebridge knowledge. Use this for error resolution, known issues, additional migration procedures, and non-public documentation. Information includes tables, figures, and detailed problem-solution mappings."
+      description: "Retrieves internal Lakebridge documentation including alternative installation methods (Web Terminal, offline),  platform-specific guides (Oracle/Snowflake/Teradata/etc.), profiler docs, FAQs, troubleshooting, security info, and roadmaps. Use for alternative approaches, error resolution, and non-public features."
       num_results: 10
 
 # Code Summarization Configuration
