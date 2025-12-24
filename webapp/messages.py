@@ -8,6 +8,7 @@ Streamlit app reruns, avoiding isinstance comparison issues.
 import streamlit as st
 import yaml
 from abc import ABC, abstractmethod
+from urllib.parse import urlparse, unquote_plus
 
 # Load configuration
 import os
@@ -15,6 +16,43 @@ config_file = os.getenv('CONFIG_FILE', 'configs/ucx.config.yaml')
 config_path = os.path.join(os.path.dirname(__file__), config_file)
 with open(config_path, 'r') as f:
     CONFIG = yaml.safe_load(f)
+
+def format_doc_source(doc_uri: str) -> tuple[str, str | None]:
+    """
+    Format a doc source for display.
+    - DBFS paths are internal: show only the document name and add '(Internal Doc)', with no link.
+    - Other URIs are shown as a link, using a human-friendly label (usually the filename).
+    Returns: (label, link_or_none)
+    """
+    if not doc_uri:
+        return ("", None)
+
+    # Normalize for robust scheme/path checks.
+    uri = str(doc_uri).strip()
+    uri_lower = uri.lower()
+    is_dbfs = uri_lower.startswith("dbfs:") or uri_lower.startswith("/dbfs/")
+
+    # Best-effort filename extraction for nicer display
+    basename = uri.rstrip("/").split("/")[-1] if "/" in uri else uri
+    if not basename:
+        basename = uri
+    # Make display names nicer when sources are URL-encoded (e.g., "+" for spaces).
+    basename = unquote_plus(basename)
+
+    if is_dbfs:
+        return (f"{basename} (Internal Doc)", None)
+
+    # For http(s)/file/etc, keep link but use filename as label when possible
+    try:
+        parsed = urlparse(uri)
+        path = parsed.path or ""
+        label = path.rstrip("/").split("/")[-1] if "/" in path else (parsed.netloc or uri)
+        label = label or basename
+    except Exception:
+        label = basename
+
+    label = unquote_plus(label)
+    return (label, uri)
 
 
 class Message(ABC):
@@ -99,6 +137,8 @@ class AssistantResponse(Message):
         return doc_sources
 
     def render(self, idx):
+        # Avoid accidental shadowing of the message index in nested loops.
+        msg_idx = idx
         with st.chat_message("assistant"):
             # If we have separated thinking/final content, render them separately
             if self.thinking_messages or self.final_content:
@@ -124,16 +164,22 @@ class AssistantResponse(Message):
                     
                     if len(doc_sources) == 1:
                         source = list(doc_sources)[0]
-                        st.markdown(f"[{source}]({source})")
+                        label, link = format_doc_source(source)
+                        if link:
+                            st.markdown(f"[{label}]({link})")
+                        else:
+                            st.markdown(label)
                     else:
                         # Use columns for horizontal layout
                         cols = st.columns(min(len(doc_sources), 3))
-                        for idx, source in enumerate(sorted(doc_sources)):
-                            col_idx = idx % len(cols)
+                        for source_idx, source in enumerate(sorted(doc_sources)):
+                            col_idx = source_idx % len(cols)
                             with cols[col_idx]:
-                                # Extract filename from URL for display
-                                filename = source.split('/')[-1] if '/' in source else source
-                                st.markdown(f"[{filename}]({source})")
+                                label, link = format_doc_source(source)
+                                if link:
+                                    st.markdown(f"[{label}]({link})")
+                                else:
+                                    st.markdown(label)
             else:
                 # Fallback: render all messages normally (legacy behavior)
                 for msg in self.messages:
@@ -159,12 +205,12 @@ class AssistantResponse(Message):
                         file_name=f"{CONFIG.get('pdf_filename_prefix', 'Response')}_{time.strftime('%Y%m%d_%H%M%S')}.pdf",
                         mime="application/pdf",
                         help="Download PDF report",
-                        key=f"pdf_download_{idx}_{abs(hash(self.final_content))}",
+                        key=f"pdf_download_{msg_idx}_{abs(hash(self.final_content))}",
                         type="secondary"
                     )
 
             if self.request_id is not None:
-                render_assistant_message_feedback(idx, self.request_id)
+                render_assistant_message_feedback(msg_idx, self.request_id)
 
 def render_message(msg):
     """Render a single message."""
